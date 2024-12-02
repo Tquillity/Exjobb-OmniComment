@@ -1,0 +1,23 @@
+{
+  "name": "omnicomment",
+  "version": "1.0.0",
+  "description": "Universal decentralized commenting service",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend",
+    "blockchain"
+  ],
+  "scripts": {
+    "frontend": "npm run dev --workspace=frontend",
+    "backend": "npm run dev --workspace=backend",
+    "blockchain": "npm run node --workspace=blockchain",
+    "test": "npm run test --workspaces",
+    "lint": "npm run lint --workspaces"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.15"
+  }
+}
