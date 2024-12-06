@@ -6,28 +6,34 @@ const tabStates = new Map();
 // Function to handle MetaMask connection
 async function connectToMetaMask(tabId) {
   try {
-    // Get the extension's ID for the URL
-    const extensionURL = chrome.runtime.getURL('');
-    
-    // Inject the provider connection script with the extension URL
+    // Inject the provider connection script
     const [{ result }] = await chrome.scripting.executeScript({
       target: { tabId },
-      args: [extensionURL], // Pass the URL as an argument
-      func: async (extensionURL) => {
+      func: async () => {
         try {
+          if (!window.ethereum) {
+            throw new Error('MetaMask not found');
+          }
+
+          // Request account access
           const accounts = await window.ethereum.request({
             method: 'eth_requestAccounts'
           });
 
-          // Set the dApp connection info
-          await window.ethereum.request({
-            method: 'wallet_setDappMetadata',
-            params: [{
-              name: 'OmniComment',
-              url: extensionURL,
-              icon: `${extensionURL}icons/icon128.png`
-            }]
-          }).catch(console.error); // Catch but continue if this fails
+          // Listen for account changes
+          window.ethereum.on('accountsChanged', (accounts) => {
+            window.postMessage({
+              type: 'OMNICOMMENT_ACCOUNT_CHANGED',
+              account: accounts[0]
+            }, '*');
+          });
+
+          // Listen for chain changes
+          window.ethereum.on('chainChanged', () => {
+            window.postMessage({
+              type: 'OMNICOMMENT_CHAIN_CHANGED'
+            }, '*');
+          });
 
           return { success: true, account: accounts[0] };
         } catch (error) {
@@ -43,6 +49,7 @@ async function connectToMetaMask(tabId) {
   }
 }
 
+// Message handlers
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   const tabId = sender.tab?.id;
   
@@ -57,9 +64,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }, '*');
       },
       world: "MAIN"
-    }).catch(error => {
-      console.error('Failed to inject MetaMask detector:', error);
-    });
+    }).catch(console.error);
   }
   
   if (message.type === 'METAMASK_STATUS' && tabId) {
@@ -88,7 +93,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const result = await connectToMetaMask(tab.id);
         sendResponse(result);
       });
-      return true; // Keep message channel open
+      return true;
     }
   }
 });
