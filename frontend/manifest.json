@@ -1,12 +1,16 @@
 {
   "manifest_version": 3,
   "name": "OmniComment",
-  "version": "1.0.0",
+  "version": "1.0.03",
   "description": "Decentralized commenting system for any webpage",
   "permissions": [
     "activeTab",
     "scripting",
-    "storage"
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "<all_urls>"
   ],
   "action": {
     "default_popup": "index.html",
@@ -20,13 +24,8 @@
     {
       "matches": ["<all_urls>"],
       "js": ["src/content.js"],
-      "css": ["src/content-inject.css"]
-    }
-  ],
-  "web_accessible_resources": [
-    {
-      "resources": ["index.html", "src/content-inject.css"],
-      "matches": ["<all_urls>"]
+      "css": ["src/content-inject.css"],
+      "run_at": "document_end"
     }
   ],
   "background": {
