@@ -1,6 +1,0 @@
-/* Only critical styles that need to be injected immediately */
-/* Most styles will come from Tailwind classes */
-#omnicomment-root {
-  all: initial;
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
-}

@@ -1,90 +1,87 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
-import tailwindcss from 'tailwindcss';
-import autoprefixer from 'autoprefixer';
 import fs from 'fs';
 
-// Ensure required files are copied to dist
-const copyExtensionFiles = () => ({
-  name: 'copy-extension-files',
-  writeBundle() {
-    // Create dist/src directory if it doesn't exist
-    if (!fs.existsSync('dist/src')) {
-      fs.mkdirSync('dist/src', { recursive: true });
-    }
-    
-    // Copy static files
-    const files = [
-      ['src/content-inject.css', 'src/content-inject.css'],
-      ['src/content.js', 'src/content.js'],
-      ['src/background.js', 'src/background.js'],
-      ['src/utils/metamaskDetector.js', 'src/utils/metamaskDetector.js']
-    ];
-
-    files.forEach(([src, dest]) => {
-      // Ensure the destination directory exists
-      const destDir = `dist/${dest.split('/').slice(0, -1).join('/')}`;
-      if (!fs.existsSync(destDir)) {
-        fs.mkdirSync(destDir, { recursive: true });
+function copyManifestAndIcons() {
+  return {
+    name: 'copy-manifest-and-icons',
+    writeBundle() {
+      // Copy manifest
+      if (fs.existsSync('manifest.json')) {
+        fs.copyFileSync('manifest.json', 'dist/manifest.json');
       }
       
-      if (fs.existsSync(src)) {
-        fs.copyFileSync(src, `dist/${dest}`);
+      // Create icons directory if it doesn't exist
+      if (!fs.existsSync('dist/icons')) {
+        fs.mkdirSync('dist/icons', { recursive: true });
       }
-    });
+      
+      // Copy icons if they exist
+      const iconSizes = ['16', '48', '128'];
+      iconSizes.forEach(size => {
+        const iconPath = `icons/icon${size}.png`;
+        if (fs.existsSync(iconPath)) {
+          fs.copyFileSync(iconPath, `dist/icons/icon${size}.png`);
+          // Also copy to the dev server public directory
+          if (!fs.existsSync('public/icons')) {
+            fs.mkdirSync('public/icons', { recursive: true });
+          }
+          fs.copyFileSync(iconPath, `public/icons/icon${size}.png`);
+        }
+      });
 
-    // Copy manifest.json to dist
-    if (fs.existsSync('manifest.json')) {
-      fs.copyFileSync('manifest.json', 'dist/manifest.json');
-    }
-
-    // Create icons directory and copy icons if they exist
-    const iconSizes = ['16', '48', '128'];
-    const iconsDir = 'dist/icons';
-    if (!fs.existsSync(iconsDir)) {
-      fs.mkdirSync(iconsDir, { recursive: true });
-    }
-    
-    iconSizes.forEach(size => {
-      const iconPath = `icons/icon${size}.png`;
-      if (fs.existsSync(iconPath)) {
-        fs.copyFileSync(iconPath, `${iconsDir}/icon${size}.png`);
+      // Create assets directory if it doesn't exist
+      if (!fs.existsSync('dist/assets')) {
+        fs.mkdirSync('dist/assets', { recursive: true });
       }
-    });
-  }
-});
-
+    }
+  };
+}
 
 export default defineConfig({
-  plugins: [react(), copyExtensionFiles()],
+  plugins: [react(), copyManifestAndIcons()],
+  server: {
+    port: 5173,
+    strictPort: true,
+    host: true,
+    // Add static file serving for icons
+    fs: {
+      allow: ['..']
+    }
+  },
   build: {
-    outDir: 'dist',
-    emptyOutDir: true,
+    sourcemap: true,
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'index.html'),
-        background: resolve(__dirname, 'src/background.js'),
-        content: resolve(__dirname, 'src/content.js')
+        index: resolve(__dirname, 'index.html'),
+        connect: resolve(__dirname, 'connect.html'),
+        background: resolve(__dirname, 'src/extension/background.js')
       },
       output: {
         entryFileNames: (chunkInfo) => {
-          if (chunkInfo.name === 'background' || chunkInfo.name === 'content') {
-            return 'src/[name].js';
+          if (chunkInfo.name === 'background') {
+            return 'background.js';
           }
           return 'assets/[name].js';
         },
-        chunkFileNames: 'assets/[name].js',
-        assetFileNames: 'assets/[name].[ext]'
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name].[ext]',
+        inlineDynamicImports: false
       }
-    }
-  },
-  css: {
-    postcss: {
-      plugins: [
-        tailwindcss,
-        autoprefixer,
-      ],
     },
+    cssCodeSplit: false,
+    cssTarget: 'chrome89'
+  },
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, 'src'),
+      '@components': resolve(__dirname, 'src/components'),
+      '@pages': resolve(__dirname, 'src/pages'),
+      '@utils': resolve(__dirname, 'src/utils'),
+      '@services': resolve(__dirname, 'src/services'),
+      '@hooks': resolve(__dirname, 'src/hooks'),
+      '@assets': resolve(__dirname, 'src/assets')
+    }
   }
 });

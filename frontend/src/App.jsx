@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { ethers } from 'ethers'
 
 function App() {
   const [account, setAccount] = useState('')
@@ -7,150 +6,78 @@ function App() {
   const [isExtension] = useState(!!chrome?.runtime?.id)
   const [isValidTab, setIsValidTab] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
-  const [hasMetaMask, setHasMetaMask] = useState(false)
 
-  // Check if able to inject content script on the current tab
+  // Check stored connection state on load
+  useEffect(() => {
+    const checkConnectionState = async () => {
+      try {
+        const savedState = await chrome.storage.local.get(['connectedAccount']);
+        if (savedState.connectedAccount) {
+          setAccount(savedState.connectedAccount);
+          setIsConnected(true);
+        }
+      } catch (error) {
+        console.error('Error checking connection state:', error);
+      }
+    };
+
+    if (isExtension) {
+      checkConnectionState();
+    }
+  }, [isExtension]);
+
+  // Check if current tab is valid for the extension
   useEffect(() => {
     if (isExtension) {
-      chrome.tabs.query({ active: true, currentWindow: true }, async ([tab]) => {
-        // Check if on a valid URL
+      chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
         const isValidUrl = tab?.url && !tab.url.startsWith('chrome:') && 
                           !tab.url.startsWith('chrome-extension:') &&
                           !tab.url.startsWith('about:');
         setIsValidTab(isValidUrl);
-
-        if (isValidUrl) {
-          try {
-            // Ensure content script is loaded
-            await ensureContentScript(tab.id);
-            // Check MetaMask status
-            const response = await chrome.runtime.sendMessage({ type: 'CHECK_METAMASK' });
-            setHasMetaMask(response?.hasMetaMask || false);
-          } catch (error) {
-            console.error('Error ensuring content script:', error);
-          }
-        }
       });
-
-      // Listen for MetaMask status updates
-      const statusListener = (message) => {
-        if (message.type === 'METAMASK_STATUS_UPDATE') {
-          setHasMetaMask(message.hasMetaMask);
-        }
-      };
-      chrome.runtime.onMessage.addListener(statusListener);
-      return () => chrome.runtime.onMessage.removeListener(statusListener);
     }
   }, [isExtension]);
 
-  const ensureContentScript = async (tabId) => {
-    try {
-      // Try to send a test message
-      await chrome.tabs.sendMessage(tabId, { type: 'PING' });
-    } catch (error) {
-      // If content script isn't loaded, inject it
-      await chrome.scripting.executeScript({
-        target: { tabId },
-        files: ['src/content.js']
-      });
-      
-      // Wait a bit for the script to initialize
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
-  };
-
   const connectWallet = async () => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-  
       if (!isValidTab) {
         throw new Error('Cannot connect wallet on this page');
       }
-  
-      if (isExtension) {
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (!tab) throw new Error('No active tab found');
-  
-        // Ensure content script is loaded
-        await ensureContentScript(tab.id);
-  
-        if (!hasMetaMask) {
-          throw new Error('Please install MetaMask!');
+
+      // Generate unique session ID
+      const sessionId = crypto.randomUUID();
+      
+      // Store session ID
+      await chrome.storage.local.set({ pendingConnection: sessionId });
+
+      console.log('Opening connection window...');
+      
+      // Open connection page
+      const connectionUrl = `http://localhost:5173/connect.html?session=${sessionId}`;
+      const width = 400;
+      const height = 600;
+      const left = window.screen.width / 2 - width / 2;
+      const top = window.screen.height / 2 - height / 2;
+      
+      window.open(
+        connectionUrl,
+        'Connect to MetaMask',
+        `width=${width},height=${height},left=${left},top=${top}`
+      );
+
+      // Listen for connection response
+      const handleConnection = (message) => {
+        if (message.type === 'WALLET_CONNECTED' && message.sessionId === sessionId) {
+          setAccount(message.account);
+          setIsConnected(true);
+          chrome.storage.local.set({ connectedAccount: message.account });
+          chrome.runtime.onMessage.removeListener(handleConnection);
+          chrome.storage.local.remove('pendingConnection');
         }
-  
-        // Try to connect wallet through background script
-        const response = await chrome.runtime.sendMessage({ type: 'CONNECT_WALLET' });
-        
-        if (!response.success) {
-          throw new Error(response.error || 'Failed to connect wallet');
-        }
-  
-        // After successful connection, switch to Polygon network
-        try {
-          await window.ethereum.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: '0x89' }]
-          });
-        } catch (switchError) {
-          if (switchError.code === 4902) {
-            await window.ethereum.request({
-              method: 'wallet_addEthereumChain',
-              params: [{
-                chainId: '0x89',
-                chainName: 'Polygon Mainnet',
-                nativeCurrency: {
-                  name: 'MATIC',
-                  symbol: 'MATIC',
-                  decimals: 18
-                },
-                rpcUrls: ['https://polygon-rpc.com/'],
-                blockExplorerUrls: ['https://polygonscan.com/']
-              }]
-            });
-          }
-        }
-  
-        setAccount(response.account);
-        setIsConnected(true);
-      } else {
-        // Regular web app flow
-        if (typeof window.ethereum === 'undefined') {
-          throw new Error('Please install MetaMask!');
-        }
-  
-        const accounts = await window.ethereum.request({ 
-          method: 'eth_requestAccounts' 
-        });
-        
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        
-        try {
-          await window.ethereum.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: '0x89' }]
-          });
-        } catch (switchError) {
-          if (switchError.code === 4902) {
-            await window.ethereum.request({
-              method: 'wallet_addEthereumChain',
-              params: [{
-                chainId: '0x89',
-                chainName: 'Polygon Mainnet',
-                nativeCurrency: {
-                  name: 'MATIC',
-                  symbol: 'MATIC',
-                  decimals: 18
-                },
-                rpcUrls: ['https://polygon-rpc.com/'],
-                blockExplorerUrls: ['https://polygonscan.com/']
-              }]
-            });
-          }
-        }
-  
-        setAccount(accounts[0]);
-        setIsConnected(true);
-      }
+      };
+
+      chrome.runtime.onMessage.addListener(handleConnection);
     } catch (error) {
       console.error('Error connecting wallet:', error);
       alert(error.message);
@@ -159,47 +86,16 @@ function App() {
     }
   };
 
-  useEffect(() => {
-    if (isExtension) {
-      // Listen for account updates from content script
-      const listener = (request, sender, sendResponse) => {
-        if (request.type === 'ACCOUNT_CHANGED') {
-          setAccount(request.account);
-          setIsConnected(Boolean(request.account));
-        }
-        if (request.type === 'CHAIN_CHANGED') {
-          window.location.reload();
-        }
-      };
-
-      chrome.runtime.onMessage.addListener(listener);
-
-      return () => {
-        chrome.runtime.onMessage.removeListener(listener);
-      };
-    } else {
-      if (window.ethereum) {
-        window.ethereum.on('accountsChanged', accounts => {
-          setAccount(accounts[0]);
-          setIsConnected(Boolean(accounts[0]));
-        });
-
-        window.ethereum.on('chainChanged', () => {
-          window.location.reload();
-        });
-
-        return () => {
-          window.ethereum.removeListener('accountsChanged', accounts => {
-            setAccount(accounts[0]);
-            setIsConnected(Boolean(accounts[0]));
-          });
-          window.ethereum.removeListener('chainChanged', () => {
-            window.location.reload();
-          });
-        };
-      }
+  const disconnectWallet = async () => {
+    try {
+      await chrome.storage.local.remove(['connectedAccount']);
+      setAccount('');
+      setIsConnected(false);
+    } catch (error) {
+      console.error('Error disconnecting wallet:', error);
+      alert('Failed to disconnect wallet');
     }
-  }, [isExtension]);
+  };
 
   return (
     <div className="w-96 h-96 bg-gray-100"> 
@@ -213,18 +109,31 @@ function App() {
               Not available on this page
             </div>
           ) : (
-            <button
-              onClick={connectWallet}
-              disabled={isLoading}
-              className={`${
-                isLoading ? 'bg-gray-400' : 'bg-blue-500 hover:bg-blue-700'
-              } text-white font-bold py-2 px-4 rounded`}
-            >
-              {isLoading ? 'Connecting...' : 
-               isConnected ? 
-                `Connected: ${account.slice(0,6)}...${account.slice(-4)}` : 
-                'Connect Wallet'}
-            </button>
+            <div className="space-x-2">
+              {isConnected ? (
+                <>
+                  <span className="text-sm text-gray-600">
+                    {`${account.slice(0,6)}...${account.slice(-4)}`}
+                  </span>
+                  <button
+                    onClick={disconnectWallet}
+                    className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+                  >
+                    Disconnect
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={connectWallet}
+                  disabled={isLoading}
+                  className={`${
+                    isLoading ? 'bg-gray-400' : 'bg-blue-500 hover:bg-blue-700'
+                  } text-white font-bold py-2 px-4 rounded`}
+                >
+                  {isLoading ? 'Connecting...' : 'Connect Wallet'}
+                </button>
+              )}
+            </div>
           )}
         </div>
       </header>

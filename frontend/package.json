@@ -3,12 +3,12 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-"scripts": {
-  "dev": "vite",
-  "build": "vite build && cp manifest.json dist/ && mkdir -p dist/icons && cp -r icons/* dist/icons/",
-  "lint": "eslint .",
-  "preview": "vite preview"
-},
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && cp manifest.json dist/ && mkdir -p dist/icons && cp -r icons/* dist/icons/",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
   "dependencies": {
     "@headlessui/react": "^2.2.0",
     "@heroicons/react": "^2.2.0",

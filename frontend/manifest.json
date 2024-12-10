@@ -5,13 +5,18 @@
   "description": "Decentralized commenting system for any webpage",
   "permissions": [
     "activeTab",
-    "scripting",
     "storage",
     "tabs"
   ],
   "host_permissions": [
     "<all_urls>"
   ],
+  "externally_connectable": {
+    "matches": ["http://localhost:5173/*"]
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
   "action": {
     "default_popup": "index.html",
     "default_icon": {
@@ -20,22 +25,23 @@
       "128": "icons/icon128.png"
     }
   },
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["src/content.js"],
-      "css": ["src/content-inject.css"],
-      "run_at": "document_end"
-    }
-  ],
   "background": {
-    "service_worker": "src/background.js",
+    "service_worker": "background.js",
     "type": "module"
   },
   "web_accessible_resources": [
     {
-      "resources": ["icons/*"],
+      "resources": [
+        "assets/*",
+        "icons/*",
+        "index.html"
+      ],
       "matches": ["<all_urls>"]
     }
-  ]
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
 }
