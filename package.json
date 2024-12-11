@@ -1,23 +1,25 @@
 {
   "name": "omnicomment",
   "version": "1.0.0",
-  "description": "Universal decentralized commenting service",
   "private": true,
   "workspaces": [
-    "frontend",
     "backend",
+    "frontend/*",
     "blockchain"
   ],
   "scripts": {
-    "frontend": "npm run dev --workspace=frontend",
-    "backend": "npm run dev --workspace=backend",
-    "blockchain": "npm run node --workspace=blockchain",
-    "test": "npm run test --workspaces",
-    "lint": "npm run lint --workspaces"
+    "dev:webapp": "cd frontend/webapp && npm run dev",
+    "dev:extension": "cd frontend/extension && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "build:webapp": "cd frontend/webapp && npm run build",
+    "build:extension": "cd frontend/extension && npm run build",
+    "build": "npm run build:webapp && npm run build:extension",
+    "test": "npm run test:backend && npm run test:contracts",
+    "test:backend": "cd backend && npm test",
+    "test:contracts": "cd blockchain && npx hardhat test"
   },
   "devDependencies": {
-    "autoprefixer": "^10.4.20",
-    "postcss": "^8.4.49",
-    "tailwindcss": "^3.4.15"
+    "eslint": "^9.15.0",
+    "prettier": "^3.2.5"
   }
 }
