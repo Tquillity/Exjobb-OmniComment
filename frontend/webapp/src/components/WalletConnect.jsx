@@ -8,27 +8,30 @@ export default function WalletConnect({ onConnect }) {
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
 
-  const handleConnect = async () => {
-    try {
-      setIsConnecting(true);
-      setStatus('Requesting wallet connection...');
-      setError('');
-      
-      const account = await connectWallet();
-      
-      // Register user in the database
-      await registerUser(account);
-      
-      setStatus(`Connected: ${account}`);
-      onConnect(account);
-    } catch (err) {
-      console.error('Connection error:', err);
-      setError(err.message);
-      setStatus('Connection failed');
-    } finally {
-      setIsConnecting(false);
-    }
-  };
+const handleConnect = async () => {
+  try {
+    setIsConnecting(true);
+    setStatus('Requesting wallet connection...');
+    setError('');
+    
+    const account = await connectWallet();
+    console.log('Wallet connected:', account);
+    
+    // Register user in the database
+    setStatus('Registering user...');
+    await registerUser(account);
+    console.log('User registered successfully');
+    
+    setStatus(`Connected: ${account}`);
+    onConnect(account);
+  } catch (err) {
+    console.error('Connection error:', err);
+    setError(err.message);
+    setStatus('Connection failed');
+  } finally {
+    setIsConnecting(false);
+  }
+};
 
   return (
     <div className="space-y-2">

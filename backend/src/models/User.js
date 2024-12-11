@@ -8,6 +8,24 @@ const userSchema = new mongoose.Schema({
     unique: true,
     index: true
   },
+  username: {
+    type: String,
+    trim: true,
+    maxLength: 50,
+    default: null
+  },
+  age: {
+    type: Number,
+    min: 13,
+    max: 120,
+    default: null
+  },
+  nationality: {
+    type: String,
+    trim: true,
+    maxLength: 100,
+    default: null
+  },
   subscription: {
     type: {
       type: String,

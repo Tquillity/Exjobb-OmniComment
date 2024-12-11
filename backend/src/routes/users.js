@@ -1,30 +1,47 @@
 // backend/src/routes/users.js
 import { Router } from 'express';
+import { body, validationResult } from 'express-validator';
 import User from '../models/User.js';
 
 const router = Router();
 
-// Register user
-router.post('/register', async (req, res) => {
+// Register user with optional fields
+router.post('/register', [
+  body('walletAddress').isLength({ min: 42, max: 42 }),
+  body('username').optional().trim().isLength({ min: 2, max: 50 }),
+  body('age').optional().isInt({ min: 13, max: 120 }),
+  body('nationality').optional().trim().isLength({ max: 100 })
+], async (req, res) => {
   try {
-    const { walletAddress } = req.body;
-    console.log('Registration attempt - Wallet Address:', walletAddress);
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { walletAddress, username, age, nationality } = req.body;
+    console.log('Registration attempt:', { walletAddress, username, age, nationality });
 
     let user = await User.findOne({ walletAddress });
-    console.log('Existing user check result:', user);
     
     if (!user) {
-      console.log('Creating new user...');
-      user = new User({ walletAddress });
-      const savedUser = await user.save();
-      console.log('New user saved:', savedUser);
+      user = new User({
+        walletAddress,
+        username,
+        age,
+        nationality
+      });
+      await user.save();
     } else {
-      console.log('User already exists');
+      // Update existing user with any new information
+      if (username) user.username = username;
+      if (age) user.age = age;
+      if (nationality) user.nationality = nationality;
+      await user.save();
     }
     
     res.json(user);
   } catch (error) {
-    console.error('Registration error details:', error);
+    console.error('Registration error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -32,24 +49,57 @@ router.post('/register', async (req, res) => {
 // Get user by wallet address
 router.get('/:walletAddress', async (req, res) => {
   try {
-    const walletAddress = req.params.walletAddress.toLowerCase();
+    const walletAddress = req.params.walletAddress;
     console.log('GET request for wallet:', walletAddress);
     
     const user = await User.findOne({ 
-      walletAddress: { $regex: new RegExp(walletAddress, 'i') }
+      walletAddress: walletAddress
     });
     
     console.log('GET request result:', user);
     
     if (!user) {
       return res.status(404).json({ 
-        error: 'User not found' 
+        error: 'User not found',
+        requestedAddress: walletAddress 
       });
     }
     
     res.json(user);
   } catch (error) {
     console.error('GET request error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update user profile
+router.put('/:walletAddress', [
+  body('username').optional().trim().isLength({ min: 2, max: 50 }),
+  body('age').optional().isInt({ min: 13, max: 120 }),
+  body('nationality').optional().trim().isLength({ max: 100 })
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { username, age, nationality } = req.body;
+    const walletAddress = req.params.walletAddress;
+
+    const user = await User.findOne({ walletAddress });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (username !== undefined) user.username = username;
+    if (age !== undefined) user.age = age;
+    if (nationality !== undefined) user.nationality = nationality;
+
+    await user.save();
+    res.json(user);
+  } catch (error) {
+    console.error('Update error:', error);
     res.status(500).json({ error: error.message });
   }
 });
