@@ -1,8 +1,9 @@
 // src/components/WalletConnect.jsx
 import React, { useState } from 'react';
 import { connectWallet } from '../services/web3';
+import { registerUser } from '../services/api';
 
-export default function WalletConnect({ onConnect }) {  // Add onConnect prop
+export default function WalletConnect({ onConnect }) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
@@ -15,8 +16,11 @@ export default function WalletConnect({ onConnect }) {  // Add onConnect prop
       
       const account = await connectWallet();
       
+      // Register user in the database
+      await registerUser(account);
+      
       setStatus(`Connected: ${account}`);
-      onConnect(account);  // Call the onConnect callback with the account
+      onConnect(account);
     } catch (err) {
       console.error('Connection error:', err);
       setError(err.message);

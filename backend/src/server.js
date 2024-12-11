@@ -9,31 +9,62 @@ import routes from './routes/index.js';
 
 dotenv.config();
 
+// MongoDB debugging
+mongoose.set('debug', true); // Enable mongoose debug mode
+
+// Create the Express app
 const app = express();
 
-// Security middleware
+// Middleware setup...
 app.use(helmet());
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? process.env.FRONTEND_URL 
+    : 'http://localhost:5173',
+  credentials: true
+}));
 app.use(express.json());
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
-});
-app.use(limiter);
-
-// MongoDB connection
+// MongoDB connection with better error handling
 mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('MongoDB connection error:', err));
+  .then(() => {
+    console.log('Successfully connected to MongoDB.');
+    // Log the current database name
+    console.log('Database:', mongoose.connection.name);
+    // Log collections
+    mongoose.connection.db.listCollections().toArray((err, collections) => {
+      if (err) {
+        console.error('Error listing collections:', err);
+      } else {
+        console.log('Available collections:', collections.map(c => c.name));
+      }
+    });
+  })
+  .catch(err => {
+    console.error('MongoDB connection error:', err);
+    console.error('Connection string used:', process.env.MONGODB_URI.replace(/:([^:@]{8})[^:@]*@/, ':****@'));
+    process.exit(1);
+  });
+
+// Monitor MongoDB connection
+mongoose.connection.on('error', err => {
+  console.error('MongoDB error:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.log('MongoDB disconnected');
+});
+
+mongoose.connection.on('reconnected', () => {
+  console.log('MongoDB reconnected');
+});
 
 // Routes
 app.use('/api', routes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error('Express error:', err.stack);
   res.status(500).json({ error: 'Something broke!' });
 });
 
