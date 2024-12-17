@@ -12,7 +12,10 @@
   "dependencies": {
     "@headlessui/react": "^2.2.0",
     "@heroicons/react": "^2.2.0",
+    "@radix-ui/react-tabs": "^1.1.2",
+    "date-fns": "^4.1.0",
     "ethers": "^5.7.2",
+    "lucide-react": "^0.468.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.28.0",

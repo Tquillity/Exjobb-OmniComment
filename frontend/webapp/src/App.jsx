@@ -7,6 +7,7 @@ import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import { Profile } from './pages/Profile';
 import { Subscription } from './pages/Subscription';
+import Comments from './pages/Comments';
 
 export default function App() {
   const [isConnected, setIsConnected] = useState(false);
@@ -57,6 +58,14 @@ export default function App() {
             element={
               <ProtectedRoute isConnected={isConnected}>
                 <Dashboard account={account} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/comments"
+            element={
+              <ProtectedRoute isConnected={isConnected}>
+                <Comments />
               </ProtectedRoute>
             }
           />

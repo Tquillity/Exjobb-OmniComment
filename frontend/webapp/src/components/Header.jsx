@@ -8,6 +8,7 @@ export default function Header({ account, onDisconnect }) {
   
   const navigation = [
     { name: 'Dashboard', href: '/dashboard' },
+    { name: 'Comments', href: '/comments' },
     { name: 'Profile', href: '/profile' },
     { name: 'Subscription', href: '/subscription' },
   ];
