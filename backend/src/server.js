@@ -15,14 +15,16 @@ mongoose.set('debug', true); // Enable mongoose debug mode
 // Create the Express app
 const app = express();
 
-// Middleware setup...
-app.use(helmet());
+// Enhanced CORS configuration
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? process.env.FRONTEND_URL 
-    : 'http://localhost:5173',
+  origin: '*', // During development, allow all origins
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
+
+// Middleware setup...
+app.use(helmet());
 app.use(express.json());
 
 // MongoDB connection with better error handling
