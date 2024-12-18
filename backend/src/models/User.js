@@ -37,6 +37,18 @@ const userSchema = new mongoose.Schema({
   reputation: {
     type: Number,
     default: 0
+  },
+  settings: {
+    theme: {
+      type: String,
+      enum: ['light', 'dark'],
+      default: 'light'
+    },
+    commentPopup: {
+      type: String,
+      enum: ['sidebar', 'overlay', 'minimal'],
+      default: 'sidebar'
+    }
   }
 }, {
   timestamps: true

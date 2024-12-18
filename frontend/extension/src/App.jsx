@@ -1,7 +1,8 @@
-// src/App.jsx
+// Frontend/extension/src/App.jsx
 import { useState, useEffect } from 'react';
 import CommentBox from './components/CommentBox';
 import { fetchComments, postComment } from './utils/api';
+import SettingsMenu from './components/SettingsMenu';
 
 // ! Test wallet address - will be replaced with proper auth later
 const TEST_WALLET_ADDRESS = '0x62884985ce480347a733c7f4d160a622b83f6f78';
@@ -53,7 +54,8 @@ function App() {
 
   return (
     <div className="w-96 p-4">
-      <h1 className="text-xl font-bold mb-4">Comments for this page</h1>
+      <SettingsMenu />
+      <h1 className="text-xl font-bold mb-4">Comments on this page</h1>
       <CommentBox onSubmit={handleSubmitComment} />
       <div className="mt-4 space-y-4">
         {comments.length === 0 ? (
