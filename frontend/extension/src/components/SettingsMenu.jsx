@@ -1,15 +1,18 @@
 // Frontend/extension/src/components/SettingsMenu.jsx
-import React, { useState } from 'react';
+import React from 'react';
 import { Menu } from '@headlessui/react';
 import { MoreVertical, Settings, Info, Monitor } from 'lucide-react';
+import { useNavigation } from '../contexts/NavigationContext';
 
 const SettingsMenu = () => {
+  const { navigateTo } = useNavigation();
+  
   const handleOpenDesktop = () => {
     window.open('http://localhost:5173/', '_blank');
   };
 
   return (
-    <div className="absolute top-2 right-2">
+    <div className="relative">
       <Menu>
         <Menu.Button className="p-2 hover:bg-gray-100 rounded-full">
           <MoreVertical className="h-5 w-5 text-gray-600" />
@@ -22,9 +25,7 @@ const SettingsMenu = () => {
                   className={`${
                     active ? 'bg-gray-100' : ''
                   } flex items-center w-full px-4 py-2 text-sm text-gray-700`}
-                  onClick={() => {
-                    console.log('Settings clicked');
-                  }}
+                  onClick={() => navigateTo('settings')}
                 >
                   <Settings className="mr-2 h-4 w-4" />
                   Settings
@@ -37,9 +38,7 @@ const SettingsMenu = () => {
                   className={`${
                     active ? 'bg-gray-100' : ''
                   } flex items-center w-full px-4 py-2 text-sm text-gray-700`}
-                  onClick={() => {
-                    console.log('About clicked');
-                  }}
+                  onClick={() => navigateTo('about')}
                 >
                   <Info className="mr-2 h-4 w-4" />
                   About
@@ -51,11 +50,11 @@ const SettingsMenu = () => {
                 <button
                   className={`${
                     active ? 'bg-gray-100' : ''
-                  } flex items-center w-full px-4 py-2 text-sm text-gray-700`}
+                  } flex items-center w-full px-4 py-2 text-sm text-blue-600 hover:text-blue-800 hover:underline`}
                   onClick={handleOpenDesktop}
                 >
                   <Monitor className="mr-2 h-4 w-4" />
-                  Desktop
+                  Go To WebApp
                 </button>
               )}
             </Menu.Item>
