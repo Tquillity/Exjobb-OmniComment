@@ -1,13 +1,13 @@
 // Frontend/extension/src/pages/Settings.jsx
-import React, { useState } from 'react';
+import React from 'react';
 import AppearanceSettings from '../components/AppearanceSettings';
 import { useNavigation } from '../contexts/NavigationContext';
 import { ChevronLeft, X } from 'lucide-react';
 import CommentPreferences from '../components/CommentPreferences';
 
 const Settings = () => {
-  const [activeCategory, setActiveCategory] = useState(null);
-  const { goBack, closeAll } = useNavigation();
+  const { navigateTo, goBack, closeAll, currentParams } = useNavigation();
+  const activeCategory = currentParams?.category;
 
   const renderCategoryContent = () => {
     switch (activeCategory) {
@@ -18,6 +18,10 @@ const Settings = () => {
       default:
         return null;
     }
+  };
+
+  const handleCategoryClick = (category) => {
+    navigateTo('settings', { category });
   };
 
   return (
@@ -49,24 +53,23 @@ const Settings = () => {
           <div className="p-4 space-y-2">
             {/* Settings Categories */}
             <button
-              onClick={() => setActiveCategory('appearance')}
+              onClick={() => handleCategoryClick('appearance')}
               className="w-full p-3 flex items-center space-x-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             >
               <span className="text-xl">🎨</span>
               <span>Appearance</span>
             </button>
-            
-            {/* Add more category buttons here as implemented */}
+
             <button
-              onClick={() => setActiveCategory('notifications')}
+              onClick={() => handleCategoryClick('notifications')}
               className="w-full p-3 flex items-center space-x-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             >
               <span className="text-xl">🔔</span>
               <span>Notifications</span>
             </button>
-            
+
             <button
-              onClick={() => setActiveCategory('privacy')}
+              onClick={() => handleCategoryClick('privacy')}
               className="w-full p-3 flex items-center space-x-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             >
               <span className="text-xl">🔒</span>
@@ -74,7 +77,7 @@ const Settings = () => {
             </button>
 
             <button
-              onClick={() => setActiveCategory('comments')}
+              onClick={() => handleCategoryClick('comments')}
               className="w-full p-3 flex items-center space-x-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             >
               <span className="text-xl">💭</span>
@@ -82,7 +85,7 @@ const Settings = () => {
             </button>
 
             <button
-              onClick={() => setActiveCategory('wallet')}
+              onClick={() => handleCategoryClick('wallet')}
               className="w-full p-3 flex items-center space-x-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             >
               <span className="text-xl">👛</span>
@@ -90,7 +93,7 @@ const Settings = () => {
             </button>
 
             <button
-              onClick={() => setActiveCategory('language')}
+              onClick={() => handleCategoryClick('language')}
               className="w-full p-3 flex items-center space-x-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             >
               <span className="text-xl">🌍</span>

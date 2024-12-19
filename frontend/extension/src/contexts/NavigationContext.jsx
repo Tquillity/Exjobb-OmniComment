@@ -4,10 +4,10 @@ import React, { createContext, useContext, useState } from 'react';
 const NavigationContext = createContext();
 
 export function NavigationProvider({ children }) {
-  const [pageStack, setPageStack] = useState([{ name: 'main' }]);
+  const [pageStack, setPageStack] = useState([{ name: 'main', params: {} }]);
   
-  const navigateTo = (pageName) => {
-    setPageStack(prev => [...prev, { name: pageName }]);
+  const navigateTo = (pageName, params = {}) => {
+    setPageStack(prev => [...prev, { name: pageName, params }]);
   };
   
   const goBack = () => {
@@ -15,12 +15,13 @@ export function NavigationProvider({ children }) {
   };
   
   const closeAll = () => {
-    setPageStack([{ name: 'main' }]);
+    setPageStack([{ name: 'main', params: {} }]);
   };
   
   return (
     <NavigationContext.Provider value={{ 
       currentPage: pageStack[pageStack.length - 1].name,
+      currentParams: pageStack[pageStack.length - 1].params,
       canGoBack: pageStack.length > 1,
       navigateTo,
       goBack,
