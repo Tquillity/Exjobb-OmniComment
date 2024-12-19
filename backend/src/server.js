@@ -16,11 +16,18 @@ mongoose.set('debug', true); // Enable mongoose debug mode
 const app = express();
 
 // Enhanced CORS configuration
-app.use(cors({
-  origin: 'chrome-extension://*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+const corsOptions = {
+  origin: [
+    'http://localhost:5173',  // Frontend dev server
+    'http://localhost:3000',  // Backend server
+    /^chrome-extension:\/\/.*$/ // Chrome extensions
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Accept'],
-}));
+  credentials: true
+};
+
+app.use(cors(corsOptions));
 
 // Middleware setup...
 app.use(helmet());
