@@ -5,8 +5,10 @@ import Header from './components/Header';
 import Settings from './pages/Settings';
 import { NavigationProvider, useNavigation } from './contexts/NavigationContext';
 import { ThemeProvider } from './contexts/ThemeContexts';
-import { fetchComments, postComment } from './utils/api';
+import { PreferencesProvider } from './contexts/PreferencesContext';
+import { fetchComments, postComment } from './services/api';
 import About from './pages/About';
+import { formatTimestamp } from './utils/timeFormat';
 
 // ! Test wallet address - will be replaced with proper auth later
 const TEST_WALLET_ADDRESS = '0x62884985ce480347a733c7f4d160a622b83f6f78';
@@ -99,7 +101,7 @@ function AppContent() {
                       <div key={comment._id} className="p-3 bg-white dark:bg-gray-800 rounded shadow">
                         <p className="break-words">{comment.content}</p>
                         <div className="mt-2 text-sm text-gray-500 dark:text-gray-400 flex justify-between">
-                          <span>{new Date(comment.createdAt).toLocaleDateString()}</span>
+                        <span>{formatTimestamp(comment.createdAt)}</span>
                           <span className="text-xs truncate" title={comment.walletAddress}>
                             {comment.walletAddress.substring(0, 6)}...{comment.walletAddress.substring(38)}
                           </span>
@@ -125,9 +127,11 @@ function AppContent() {
 function App() {
   return (
     <ThemeProvider>
-      <NavigationProvider>
-        <AppContent />
-      </NavigationProvider>
+      <PreferencesProvider>   
+        <NavigationProvider>
+          <AppContent />
+        </NavigationProvider>
+      </PreferencesProvider>   
     </ThemeProvider>
   );
 }

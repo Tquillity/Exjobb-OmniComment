@@ -17,10 +17,9 @@ const app = express();
 
 // Enhanced CORS configuration
 app.use(cors({
-  origin: '*', // During development, allow all origins
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  origin: 'chrome-extension://*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Accept'],
 }));
 
 // Middleware setup...

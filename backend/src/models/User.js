@@ -41,13 +41,47 @@ const userSchema = new mongoose.Schema({
   settings: {
     theme: {
       type: String,
-      enum: ['light', 'dark'],
-      default: 'light'
+      enum: ['light', 'dark', 'system'],
+      default: 'system'
     },
     commentPopup: {
       type: String,
       enum: ['sidebar', 'overlay', 'minimal'],
       default: 'sidebar'
+    },
+    comments: {
+      sortOrder: {
+        type: String,
+        enum: ['newest', 'oldest', 'mostLiked', 'mostDiscussed'],
+        default: 'newest'
+      },
+      threadDepth: {
+        type: Number,
+        min: 3,
+        max: 8,
+        default: 5
+      },
+      autoExpand: {
+        type: Boolean,
+        default: true
+      },
+      showPreview: {
+        type: Boolean,
+        default: true
+      },
+      richTextEnabled: {
+        type: Boolean,
+        default: true
+      },
+      collapseThreads: {
+        type: Boolean,
+        default: false
+      },
+      showTimestamp: {
+        type: String,
+        enum: ['relative', 'absolute', 'both'],
+        default: 'relative'
+      }
     }
   }
 }, {
