@@ -156,4 +156,31 @@ router.get('/user/:walletAddress', async (req, res) => {
   }
 });
 
+// Fetch statistics for a user
+router.get('/statistics/:walletAddress', async (req, res) => {
+  try {
+    const { walletAddress } = req.params;
+    const { timeframe } = req.query; // 'week', 'month', 'all'
+    
+    // Calculate date range
+    const startDate = timeframe === 'week' 
+      ? new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+      : timeframe === 'month'
+      ? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      : null;
+
+    // Build query
+    const query = { walletAddress };
+    if (startDate) {
+      query.createdAt = { $gte: startDate };
+    }
+
+    const comments = await Comment.find(query);
+    
+    res.json(comments);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;

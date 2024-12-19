@@ -17,9 +17,17 @@ export default defineConfig({
             return 'src/[name].js';
           }
           return 'assets/[name]-[hash].js';
+        },
+        manualChunks: {
+          'vendor-recharts': ['recharts'],
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-ui': ['@headlessui/react', 'lucide-react']
         }
       }
-    }
+    },
+    chunkSizeWarningLimit: 1000,
+    minify: 'esbuild',
+    sourcemap: false
   },
   server: {
     port: 5173,

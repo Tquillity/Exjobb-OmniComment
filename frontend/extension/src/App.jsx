@@ -10,6 +10,7 @@ import { fetchComments, postComment } from './services/api';
 import About from './pages/About';
 import MyComments from './pages/MyComments';
 import { formatTimestamp } from './utils/timeFormat';
+import Statistics from './pages/Statistics';
 
 // ! Test wallet address - will be replaced with proper auth later
 const TEST_WALLET_ADDRESS = '0x62884985ce480347a733c7f4d160a622b83f6f78';
@@ -66,6 +67,8 @@ function AppContent() {
         return <About />;
       case 'myComments':
         return <MyComments />;
+      case 'statistics':
+        return <Statistics />;
       case 'main':
       default:
         if (loading) {
