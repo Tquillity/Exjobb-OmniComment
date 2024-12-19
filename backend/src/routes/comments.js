@@ -18,14 +18,16 @@ router.get('/test', async (req, res) => {
   }
 });
 
-// Get comments from a URL
-router.get('/', async (req, res) => {
+// Get comments from a URL or by wallet address
+router.get('/', async (req,res) => {
   try {
-    const { url } = req.query;
-    const comments = await Comment.find({
-      url,
-      isDeleted: false
-    }).sort('-createdAt');
+    const { url, walletAddress } = req.query;
+    const query = { isDeleted: false };
+    
+    if (url) query.url = url;
+    if (walletAddress) query.walletAddress = walletAddress;
+    
+    const comments = await Comment.find(query).sort('-createdAt');
     res.json(comments);
   } catch (error) {
     res.status(500).json({ error: error.message });

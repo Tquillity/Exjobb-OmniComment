@@ -8,6 +8,7 @@ import { ThemeProvider } from './contexts/ThemeContexts';
 import { PreferencesProvider } from './contexts/PreferencesContext';
 import { fetchComments, postComment } from './services/api';
 import About from './pages/About';
+import MyComments from './pages/MyComments';
 import { formatTimestamp } from './utils/timeFormat';
 
 // ! Test wallet address - will be replaced with proper auth later
@@ -63,6 +64,8 @@ function AppContent() {
         return <Settings />;
       case 'about':
         return <About />;
+      case 'myComments':
+        return <MyComments />;
       case 'main':
       default:
         if (loading) {
