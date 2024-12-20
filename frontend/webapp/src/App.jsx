@@ -15,26 +15,50 @@ export default function App() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    // Check authentication status on mount and token changes
-    const checkAuth = () => {
-      const authenticated = isAuthenticated();
-      setIsConnected(authenticated);
-      if (!authenticated) {
-        setUser(null);
-        localStorage.removeItem('authToken');
+    async function checkWalletConnection() {
+      if (window.ethereum) {
+        try {
+          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+          return accounts && accounts.length > 0;
+        } catch (error) {
+          console.error('Error checking wallet connection:', error);
+          return false;
+        }
       }
+      return false;
+    }
+
+    const checkAuth = async () => {
+      const authenticated = isAuthenticated();
+      const walletConnected = await checkWalletConnection();
+      
+      if (authenticated && walletConnected) {
+        try {
+          // Get stored user data
+          const userData = JSON.parse(localStorage.getItem('userData'));
+          if (userData) {
+            setUser(userData);
+            setIsConnected(true);
+            return;
+          }
+        } catch (error) {
+          console.error('Error parsing stored user data:', error);
+        }
+      }
+      
+      // If either authentication or wallet connection fails
+      handleDisconnect();
     };
-    
+
     checkAuth();
-    
-    // Set up a timer to periodically check token expiration
     const interval = setInterval(checkAuth, 60000); // Check every minute
-    
+
     return () => clearInterval(interval);
   }, []);
 
   const handleConnect = (userData) => {
     console.log('User connected:', userData);
+    localStorage.setItem('userData', JSON.stringify(userData));
     setIsConnected(true);
     setUser(userData);
   };
@@ -42,6 +66,7 @@ export default function App() {
   const handleDisconnect = () => {
     console.log('Handling disconnect');
     localStorage.removeItem('authToken');
+    localStorage.removeItem('userData');
     setIsConnected(false);
     setUser(null);
   };
@@ -49,24 +74,24 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route 
+        <Route
           element={
-            <Layout 
-              isConnected={isConnected} 
+            <Layout
+              isConnected={isConnected}
               user={user}
               onDisconnect={handleDisconnect}
             />
           }
         >
-          <Route 
-            path="/" 
+          <Route
+            path="/"
             element={
-              isConnected ? (
+              isConnected && user ? (
                 <Navigate to="/dashboard" replace />
               ) : (
                 <Home onConnect={handleConnect} />
               )
-            } 
+            }
           />
           <Route
             path="/dashboard"

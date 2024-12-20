@@ -5,7 +5,7 @@ import { shortenAddress } from '../utils/helpers';
 
 export default function Header({ user, onDisconnect }) {
   const location = useLocation();
-  const walletAddress = user?.walletAddress || '';
+  const isConnected = Boolean(user?.walletAddress);
   
   const navigation = [
     { name: 'Dashboard', href: '/dashboard' },
@@ -24,7 +24,7 @@ export default function Header({ user, onDisconnect }) {
                 OmniComment
               </Link>
             </div>
-            {walletAddress && (
+            {isConnected && (
               <nav className="hidden sm:ml-6 sm:flex sm:space-x-8">
                 {navigation.map((item) => (
                   <Link
@@ -42,10 +42,10 @@ export default function Header({ user, onDisconnect }) {
               </nav>
             )}
           </div>
-          {walletAddress && (
+          {isConnected && (
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">
-                {user?.username || shortenAddress(walletAddress)}
+                {user.username || shortenAddress(user.walletAddress)}
               </span>
               <button
                 onClick={onDisconnect}

@@ -1,12 +1,12 @@
-// src/components/Layout.jsx
+// Frontend/webapp/src/components/Layout.jsx
 import React from 'react';
-import { Outlet, Navigate } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import Header from './Header';
 
-export function Layout({ isConnected, account, onDisconnect }) {
+export function Layout({ user, onDisconnect }) {
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header account={account} onDisconnect={onDisconnect} />
+      <Header user={user} onDisconnect={onDisconnect} />
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <Outlet />

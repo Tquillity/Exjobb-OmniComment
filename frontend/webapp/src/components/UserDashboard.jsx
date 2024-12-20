@@ -9,17 +9,29 @@ export default function UserDashboard({ user }) {
 
   useEffect(() => {
     async function getPolBalance() {
-      if (!user?.walletAddress || !window.ethereum) return;
+      if (!user?.walletAddress || !window.ethereum) {
+        setIsLoading(false);
+        setError('Wallet not connected');
+        return;
+      }
 
       try {
         setIsLoading(true);
-        
+        setError(null);
+
+        // Ensure we're connected to the wallet
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        if (!accounts || accounts.length === 0) {
+          setError('Wallet not connected');
+          return;
+        }
+
         // Get balance in wei (hexadecimal)
         const balanceHex = await window.ethereum.request({
           method: 'eth_getBalance',
           params: [user.walletAddress, 'latest']
         });
-        
+
         console.log('Raw balance hex:', balanceHex);
         
         // Convert hex to decimal string
@@ -75,7 +87,9 @@ export default function UserDashboard({ user }) {
           ) : (
             <div>
               <p className="text-3xl font-bold text-green-600">{balance} POL</p>
-              <p className="text-xs text-gray-500 mt-1">Account: {user?.username || user?.walletAddress}</p>
+              <p className="text-xs text-gray-500 mt-1">
+                Account: {user?.username || user?.walletAddress}
+              </p>
             </div>
           )}
         </div>
