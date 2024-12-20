@@ -1,46 +1,35 @@
-// src/services/web3.js
+// Frontend/webapp/src/services/web3.js
 import { AMOY_NETWORK_CONFIG, AMOY_CHAIN_ID } from '../utils/constants';
 
 export async function connectWallet() {
   if (typeof window.ethereum !== 'undefined') {
     try {
-      // First request account access
+      // Request account access
       const accounts = await window.ethereum.request({ 
         method: 'eth_requestAccounts' 
       });
+      console.log('Connected accounts:', accounts);
 
       // Get current chain ID
       const currentChainId = await window.ethereum.request({ 
         method: 'eth_chainId' 
       });
+      console.log('Current chain ID:', currentChainId);
       
-      // Convert current chain ID to decimal for comparison
       const currentChainDecimal = parseInt(currentChainId, 16);
 
-      // If we're not on Amoy, try to add/switch to it
+      // Switch to Amoy if needed
       if (currentChainDecimal !== AMOY_CHAIN_ID) {
         try {
-          // Try to switch to the network first
           await window.ethereum.request({
             method: 'wallet_switchEthereumChain',
-            params: [{ 
-              chainId: AMOY_NETWORK_CONFIG.chainId 
-            }]
+            params: [{ chainId: AMOY_NETWORK_CONFIG.chainId }]
           });
         } catch (switchError) {
-          // If the network isn't added yet, add it
           if (switchError.code === 4902) {
             await window.ethereum.request({
               method: 'wallet_addEthereumChain',
-              params: [
-                {
-                  chainName: AMOY_NETWORK_CONFIG.chainName,
-                  chainId: AMOY_NETWORK_CONFIG.chainId,
-                  nativeCurrency: AMOY_NETWORK_CONFIG.nativeCurrency,
-                  rpcUrls: AMOY_NETWORK_CONFIG.rpcUrls,
-                  blockExplorerUrls: AMOY_NETWORK_CONFIG.blockExplorerUrls
-                }
-              ]
+              params: [AMOY_NETWORK_CONFIG]
             });
           } else {
             throw switchError;
@@ -48,9 +37,28 @@ export async function connectWallet() {
         }
       }
 
-      return accounts[0];
+      // Generate signature for authentication
+      const address = accounts[0];
+      const timestamp = Date.now();
+      const message = `Sign this message to connect to OmniComment: ${timestamp}`;
+      
+      console.log('Requesting signature for message:', message);
+      
+      const signature = await window.ethereum.request({
+        method: 'personal_sign',
+        params: [message, address]
+      });
+
+      console.log('Received signature:', signature);
+
+      return {
+        address,
+        signature,
+        message
+      };
     } catch (error) {
-      throw new Error(error.message);
+      console.error('Wallet connection error:', error);
+      throw new Error(error.message || 'Failed to connect wallet');
     }
   } else {
     throw new Error('Please install MetaMask');

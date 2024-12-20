@@ -1,4 +1,4 @@
-// src/App.jsx
+// Frontend/webapp/src/App.jsx
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
@@ -8,27 +8,42 @@ import Dashboard from './pages/Dashboard';
 import { Profile } from './pages/Profile';
 import { Subscription } from './pages/Subscription';
 import Comments from './pages/Comments';
+import { isAuthenticated } from './services/auth';
 
 export default function App() {
   const [isConnected, setIsConnected] = useState(false);
-  const [account, setAccount] = useState('');
+  const [user, setUser] = useState(null);
 
-  // Add debugging logs
   useEffect(() => {
-    console.log('Connection status:', isConnected);
-    console.log('Account:', account);
-  }, [isConnected, account]);
+    // Check authentication status on mount and token changes
+    const checkAuth = () => {
+      const authenticated = isAuthenticated();
+      setIsConnected(authenticated);
+      if (!authenticated) {
+        setUser(null);
+        localStorage.removeItem('authToken');
+      }
+    };
+    
+    checkAuth();
+    
+    // Set up a timer to periodically check token expiration
+    const interval = setInterval(checkAuth, 60000); // Check every minute
+    
+    return () => clearInterval(interval);
+  }, []);
 
-  const handleConnect = (connectedAccount) => {
-    console.log('Handling connect with account:', connectedAccount);
+  const handleConnect = (userData) => {
+    console.log('User connected:', userData);
     setIsConnected(true);
-    setAccount(connectedAccount);
+    setUser(userData);
   };
 
   const handleDisconnect = () => {
     console.log('Handling disconnect');
+    localStorage.removeItem('authToken');
     setIsConnected(false);
-    setAccount('');
+    setUser(null);
   };
 
   return (
@@ -38,7 +53,7 @@ export default function App() {
           element={
             <Layout 
               isConnected={isConnected} 
-              account={account} 
+              user={user}
               onDisconnect={handleDisconnect}
             />
           }
@@ -57,7 +72,7 @@ export default function App() {
             path="/dashboard"
             element={
               <ProtectedRoute isConnected={isConnected}>
-                <Dashboard account={account} />
+                <Dashboard user={user} />
               </ProtectedRoute>
             }
           />
@@ -65,7 +80,7 @@ export default function App() {
             path="/comments"
             element={
               <ProtectedRoute isConnected={isConnected}>
-                <Comments />
+                <Comments user={user} />
               </ProtectedRoute>
             }
           />
@@ -73,7 +88,7 @@ export default function App() {
             path="/profile"
             element={
               <ProtectedRoute isConnected={isConnected}>
-                <Profile account={account} />
+                <Profile user={user} setUser={setUser} />
               </ProtectedRoute>
             }
           />
@@ -81,7 +96,7 @@ export default function App() {
             path="/subscription"
             element={
               <ProtectedRoute isConnected={isConnected}>
-                <Subscription />
+                <Subscription user={user} />
               </ProtectedRoute>
             }
           />

@@ -1,10 +1,11 @@
-// src/components/Header.jsx
+// Frontend/webapp/src/components/Header.jsx
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { shortenAddress } from '../utils/helpers';
 
-export default function Header({ account, onDisconnect }) {
+export default function Header({ user, onDisconnect }) {
   const location = useLocation();
+  const walletAddress = user?.walletAddress || '';
   
   const navigation = [
     { name: 'Dashboard', href: '/dashboard' },
@@ -23,7 +24,7 @@ export default function Header({ account, onDisconnect }) {
                 OmniComment
               </Link>
             </div>
-            {account && (
+            {walletAddress && (
               <nav className="hidden sm:ml-6 sm:flex sm:space-x-8">
                 {navigation.map((item) => (
                   <Link
@@ -41,10 +42,10 @@ export default function Header({ account, onDisconnect }) {
               </nav>
             )}
           </div>
-          {account && (
+          {walletAddress && (
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">
-                {shortenAddress(account)}
+                {user?.username || shortenAddress(walletAddress)}
               </span>
               <button
                 onClick={onDisconnect}

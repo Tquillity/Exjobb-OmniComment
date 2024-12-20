@@ -1,4 +1,4 @@
-// backend/src/server.js
+// Backend/src/server.js
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -23,15 +23,22 @@ const corsOptions = {
     /^chrome-extension:\/\/.*$/ // Chrome extensions
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Accept'],
+  allowedHeaders: ['Content-Type', 'Accept', 'Authorization'], // Added Authorization
   credentials: true
 };
 
 app.use(cors(corsOptions));
 
+// Global rate limiter
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100 // limit each IP to 100 requests per windowMs
+});
+
 // Middleware setup...
 app.use(helmet());
 app.use(express.json());
+app.use(limiter); // Apply rate limiting to all routes
 
 // MongoDB connection with better error handling
 mongoose.connect(process.env.MONGODB_URI)
@@ -67,16 +74,72 @@ mongoose.connection.on('reconnected', () => {
   console.log('MongoDB reconnected');
 });
 
+// Request logging middleware for debugging
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
+});
+
 // Routes
 app.use('/api', routes);
+
+// 404 handler
+app.use((req, res, next) => {
+  res.status(404).json({
+    error: 'Not Found',
+    message: `Route ${req.method} ${req.path} not found`,
+    path: req.path,
+    method: req.method
+  });
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Express error:', err.stack);
-  res.status(500).json({ error: 'Something broke!' });
+  
+  // Handle different types of errors
+  if (err.name === 'ValidationError') {
+    return res.status(400).json({
+      error: 'Validation Error',
+      message: err.message,
+      details: err.errors
+    });
+  }
+  
+  if (err.name === 'JsonWebTokenError') {
+    return res.status(401).json({
+      error: 'Invalid Token',
+      message: 'Your session has expired. Please login again.'
+    });
+  }
+  
+  // Default error response
+  res.status(err.status || 500).json({
+    error: err.name || 'Internal Server Error',
+    message: err.message || 'Something went wrong!',
+    path: req.path
+  });
 });
+
+// Verify required environment variables
+const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET'];
+const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+if (missingEnvVars.length > 0) {
+  console.error('Missing required environment variables:', missingEnvVars);
+  process.exit(1);
+}
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`API available at http://localhost:${PORT}/api`);
+});
+
+// Handle process termination
+process.on('SIGTERM', () => {
+  console.log('Received SIGTERM. Performing graceful shutdown...');
+  mongoose.connection.close(false, () => {
+    console.log('MongoDb connection closed.');
+    process.exit(0);
+  });
 });

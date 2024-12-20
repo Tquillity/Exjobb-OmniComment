@@ -1,15 +1,15 @@
-// src/components/UserDashboard.jsx
+// Frontend/webapp/src/components/UserDashboard.jsx
 import React, { useState, useEffect } from 'react';
 import { formatEther } from 'viem';
 
-export default function UserDashboard({ account }) {
+export default function UserDashboard({ user }) {
   const [balance, setBalance] = useState('0');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     async function getPolBalance() {
-      if (!account || !window.ethereum) return;
+      if (!user?.walletAddress || !window.ethereum) return;
 
       try {
         setIsLoading(true);
@@ -17,7 +17,7 @@ export default function UserDashboard({ account }) {
         // Get balance in wei (hexadecimal)
         const balanceHex = await window.ethereum.request({
           method: 'eth_getBalance',
-          params: [account, 'latest']
+          params: [user.walletAddress, 'latest']
         });
         
         console.log('Raw balance hex:', balanceHex);
@@ -56,7 +56,7 @@ export default function UserDashboard({ account }) {
       window.ethereum?.removeListener('chainChanged', handleChainChanged);
       window.ethereum?.removeListener('accountsChanged', handleAccountsChanged);
     };
-  }, [account]);
+  }, [user?.walletAddress]);
 
   return (
     <div className="bg-white shadow rounded-lg p-6">
@@ -75,7 +75,7 @@ export default function UserDashboard({ account }) {
           ) : (
             <div>
               <p className="text-3xl font-bold text-green-600">{balance} POL</p>
-              <p className="text-xs text-gray-500 mt-1">Account: {account}</p>
+              <p className="text-xs text-gray-500 mt-1">Account: {user?.username || user?.walletAddress}</p>
             </div>
           )}
         </div>
