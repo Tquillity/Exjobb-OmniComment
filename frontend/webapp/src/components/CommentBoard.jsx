@@ -1,4 +1,4 @@
-// src/components/CommentBoard.jsx
+// Frontend/webapp/src/components/CommentBoard.jsx
 import React, { useState, useEffect } from 'react';
 import { formatDistance } from 'date-fns';
 import { Search, TrendingUp, Filter } from 'lucide-react';

@@ -1,4 +1,4 @@
-// src/pages/Home.jsx
+// Frontend/webapp/src/pages/Home.jsx
 import React from 'react';
 import WalletConnect from '../components/WalletConnect';
 

@@ -1,4 +1,4 @@
-// src/components/TransactionHistory.jsx
+// Frontend/webapp/src/components/TransactionHistory.jsx
 import React from 'react';
 
 export default function TransactionHistory() {

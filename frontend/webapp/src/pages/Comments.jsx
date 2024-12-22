@@ -1,4 +1,4 @@
-// src/pages/Comments.jsx
+// Frontend/webapp/src/pages/Comments.jsx
 import React from 'react';
 import CommentBoard from '../components/CommentBoard';
 

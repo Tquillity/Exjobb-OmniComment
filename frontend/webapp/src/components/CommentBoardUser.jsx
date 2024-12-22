@@ -1,4 +1,4 @@
-// src/components/CommentBoardUser.jsx
+// Frontend/webapp/src/components/CommentBoardUser.jsx
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
 import { MessageSquare, ThumbsUp, Bookmark } from 'lucide-react';

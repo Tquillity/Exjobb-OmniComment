@@ -1,4 +1,4 @@
-// src/pages/Subscription.jsx
+// Frontend/webapp/src/pages/Subscription.jsx
 import React from 'react';
 
 export function Subscription() {

@@ -1,4 +1,4 @@
-// src/components/ui/tabs.jsx
+// Frontend/webapp/src/components/ui/tabs.jsx
 import * as React from 'react';
 import * as TabsPrimitive from '@radix-ui/react-tabs';
 

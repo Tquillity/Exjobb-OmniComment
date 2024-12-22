@@ -1,4 +1,4 @@
-// src/components/Loading.jsx
+// Frontend/webapp/src/components/Loading.jsx
 import React from 'react';
 
 export default function Loading({ message = 'Loading...' }) {

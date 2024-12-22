@@ -1,4 +1,4 @@
-// src/utils/constants.js
+// Frontend/webapp/src/utils/constants.js
 export const APP_NAME = 'OmniComment';
 export const CHAIN_ID = '0x89';  // Polygon Mainnet
 export const AMOY_CHAIN_ID = 80002;  // Using decimal format

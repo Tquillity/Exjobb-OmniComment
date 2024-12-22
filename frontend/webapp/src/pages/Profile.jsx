@@ -1,4 +1,4 @@
-// src/pages/Profile.jsx
+// Frontend/webapp/src/pages/Profile.jsx
 import React, { useState, useEffect } from 'react';
 import Loading from '../components/Loading';
 import UserCommentBoard from '../components/CommentBoardUser';

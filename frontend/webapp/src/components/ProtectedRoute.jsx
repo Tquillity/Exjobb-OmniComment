@@ -1,4 +1,4 @@
-// src/components/ProtectedRoute.jsx
+// Frontend/webapp/src/components/ProtectedRoute.jsx
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 

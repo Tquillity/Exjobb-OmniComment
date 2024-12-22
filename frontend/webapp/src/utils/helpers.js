@@ -1,4 +1,4 @@
-// src/utils/helpers.js
+// Frontend/webapp/src/utils/helpers.js
 export function shortenAddress(address) {
   if (!address) return '';
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
