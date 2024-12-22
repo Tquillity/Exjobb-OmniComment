@@ -3,20 +3,20 @@ import { useState, useEffect } from 'react';
 import CommentBox from './components/CommentBox';
 import Header from './components/Header';
 import Settings from './pages/Settings';
+import Login from './components/Login';
 import { NavigationProvider, useNavigation } from './contexts/NavigationContext';
 import { ThemeProvider } from './contexts/ThemeContexts';
 import { PreferencesProvider } from './contexts/PreferencesContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { fetchComments, postComment } from './services/api';
 import About from './pages/About';
 import MyComments from './pages/MyComments';
 import { formatTimestamp } from './utils/timeFormat';
 import Statistics from './pages/Statistics';
 
-// ! Test wallet address - will be replaced with proper auth later
-const TEST_WALLET_ADDRESS = '0x62884985ce480347a733c7f4d160a622b83f6f78';
-
 function AppContent() {
   const { currentPage } = useNavigation();
+  const { isAuthenticated, user, loading: authLoading } = useAuth();
   const [currentUrl, setCurrentUrl] = useState('');
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,9 +30,11 @@ function AppContent() {
         const url = tabs[0].url;
         setCurrentUrl(url);
         
-        // Fetch comments for current URL
-        const fetchedComments = await fetchComments(url);
-        setComments(fetchedComments);
+        // Only fetch comments if URL exists
+        if (url) {
+          const fetchedComments = await fetchComments(url);
+          setComments(fetchedComments);
+        }
       } catch (error) {
         console.error('Error:', error);
         setError('Failed to load comments');
@@ -45,11 +47,16 @@ function AppContent() {
   }, []);
 
   const handleSubmitComment = async (content) => {
+    if (!isAuthenticated) {
+      setError('Please login to comment');
+      return;
+    }
+
     try {
       const newComment = await postComment({
         url: currentUrl,
         content,
-        walletAddress: TEST_WALLET_ADDRESS,
+        walletAddress: user.walletAddress,
       });
       setComments(prev => [newComment, ...prev]);
     } catch (error) {
@@ -60,6 +67,21 @@ function AppContent() {
 
   // Render different pages based on navigation state
   const renderContent = () => {
+    // Show loading state while checking authentication
+    if (authLoading) {
+      return (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="p-4">Loading...</div>
+        </div>
+      );
+    }
+
+    // Handle protected routes
+    const protectedPages = ['settings', 'myComments', 'statistics'];
+    if (protectedPages.includes(currentPage) && !isAuthenticated) {
+      return <Login onSuccess={() => {/* Handle successful login */}} />;
+    }
+
     switch (currentPage) {
       case 'settings':
         return <Settings />;
@@ -69,6 +91,8 @@ function AppContent() {
         return <MyComments />;
       case 'statistics':
         return <Statistics />;
+      case 'login':
+        return <Login onSuccess={() => {/* Handle successful login */}} />;
       case 'main':
       default:
         if (loading) {
@@ -98,7 +122,13 @@ function AppContent() {
             <Header currentUrl={currentUrl} />
             <div className="flex-1 overflow-y-auto">
               <div className="p-4">
-                <CommentBox onSubmit={handleSubmitComment} />
+                {isAuthenticated ? (
+                  <CommentBox onSubmit={handleSubmitComment} />
+                ) : (
+                  <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded">
+                    <p>Please login to comment</p>
+                  </div>
+                )}
                 <div className="mt-4 space-y-4">
                   {comments.length === 0 ? (
                     <p className="text-gray-500">No comments yet. Be the first to comment!</p>
@@ -107,7 +137,7 @@ function AppContent() {
                       <div key={comment._id} className="p-3 bg-white dark:bg-gray-800 rounded shadow">
                         <p className="break-words">{comment.content}</p>
                         <div className="mt-2 text-sm text-gray-500 dark:text-gray-400 flex justify-between">
-                        <span>{formatTimestamp(comment.createdAt)}</span>
+                          <span>{formatTimestamp(comment.createdAt)}</span>
                           <span className="text-xs truncate" title={comment.walletAddress}>
                             {comment.walletAddress.substring(0, 6)}...{comment.walletAddress.substring(38)}
                           </span>
@@ -132,13 +162,15 @@ function AppContent() {
 
 function App() {
   return (
-    <ThemeProvider>
-      <PreferencesProvider>   
-        <NavigationProvider>
-          <AppContent />
-        </NavigationProvider>
-      </PreferencesProvider>   
-    </ThemeProvider>
+    <AuthProvider>
+      <ThemeProvider>
+        <PreferencesProvider>   
+          <NavigationProvider>
+            <AppContent />
+          </NavigationProvider>
+        </PreferencesProvider>   
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
 

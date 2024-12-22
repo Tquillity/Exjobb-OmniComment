@@ -1,6 +1,7 @@
 // Frontend/extension/src/contexts/PreferencesContext.jsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getUserSettings, updateUserSettings } from '../services/api';
+import { useAuth } from './AuthContext';
 
 const PreferencesContext = createContext();
 
@@ -21,14 +22,23 @@ const defaultPreferences = {
 export function PreferencesProvider({ children }) {
   const [preferences, setPreferences] = useState(defaultPreferences);
   const [loading, setLoading] = useState(true);
-  // TODO: Replace with actual wallet address from your auth system
-  const TEST_WALLET_ADDRESS = '0x62884985ce480347a733c7f4d160a622b83f6f78';
+  const { user, isAuthenticated } = useAuth();
 
+  // Load preferences when auth state changes
   useEffect(() => {
     const loadPreferences = async () => {
+      if (!isAuthenticated || !user?.walletAddress) {
+        setPreferences(defaultPreferences);
+        setLoading(false);
+        return;
+      }
+
       try {
-        const settings = await getUserSettings(TEST_WALLET_ADDRESS);
-        setPreferences(settings || defaultPreferences);
+        setLoading(true);
+        const settings = await getUserSettings(user.walletAddress);
+        if (settings) {
+          setPreferences(settings);
+        }
       } catch (error) {
         console.error('Failed to load preferences:', error);
         // Fallback to default preferences
@@ -39,16 +49,76 @@ export function PreferencesProvider({ children }) {
     };
 
     loadPreferences();
-  }, []);
+  }, [isAuthenticated, user?.walletAddress]);
+
+  // Save preferences to chrome.storage for offline access
+  useEffect(() => {
+    const saveToStorage = async () => {
+      try {
+        await chrome.storage.local.set({ preferences });
+      } catch (error) {
+        console.error('Failed to save preferences to storage:', error);
+      }
+    };
+
+    if (!loading) {
+      saveToStorage();
+    }
+  }, [preferences, loading]);
 
   const updatePreferences = async (newPreferences) => {
+    if (!isAuthenticated || !user?.walletAddress) {
+      console.warn('Cannot update preferences: User not authenticated');
+      return false;
+    }
+
     try {
-      const response = await updateUserSettings(TEST_WALLET_ADDRESS, newPreferences);
-      setPreferences(response.settings);
-      return true;
+      // Prepare the settings object in the correct format
+      const settingsUpdate = {
+        settings: newPreferences
+      };
+
+      // Update on the server
+      const response = await updateUserSettings(user.walletAddress, settingsUpdate);
+      
+      if (response.settings) {
+        // Update local state with the server response
+        setPreferences(response.settings);
+        return true;
+      }
+      
+      return false;
     } catch (error) {
       console.error('Failed to update preferences:', error);
-      return false;
+      throw new Error(error.message || 'Failed to update preferences');
+    }
+  };
+
+  // Helper functions for specific preference updates
+  const updateTheme = async (theme) => {
+    try {
+      await updatePreferences({
+        ...preferences,
+        theme
+      });
+    } catch (error) {
+      console.error('Failed to update theme:', error);
+      throw error;
+    }
+  };
+
+  const updateCommentPreferences = async (commentPrefs) => {
+    try {
+      await updatePreferences({
+        ...preferences,
+        comments: {
+          ...preferences.comments,
+          ...commentPrefs
+        }
+      });
+    } catch (error) {
+      console.error('Failed to update comment preferences:', error);
+      throw error;
     }
   };
 
@@ -56,7 +126,10 @@ export function PreferencesProvider({ children }) {
     <PreferencesContext.Provider value={{
       preferences,
       loading,
-      updatePreferences
+      updatePreferences,
+      updateTheme,
+      updateCommentPreferences,
+      isAuthenticated // Expose authentication state to consumers
     }}>
       {children}
     </PreferencesContext.Provider>

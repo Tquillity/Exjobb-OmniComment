@@ -1,15 +1,18 @@
 {
   "manifest_version": 3,
   "name": "OmniComment",
-  "version": "1.0.0",
-  "description": "Comment on any webpage",
+  "version": "1.0.1",
+  "description": "Comment on any webpage with blockchain integration",
   "permissions": [
     "activeTab",
     "storage",
-    "tabs"
+    "tabs",
+    "identity",
+    "notifications"
   ],
   "host_permissions": [
-    "http://localhost:3000/*"
+    "http://localhost:3000/*",
+    "*://*/*"
   ],
   "action": {
     "default_popup": "index.html",
@@ -19,11 +22,37 @@
       "128": "icons/icon128.png"
     }
   },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
       "js": ["src/content.js"]
     }
-  ]
+  ],
+  "web_accessible_resources": [{
+    "resources": [
+      "icons/*",
+      "assets/*"
+    ],
+    "matches": ["<all_urls>"]
+  }],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'",
+    "sandbox": "sandbox allow-scripts allow-forms allow-popups allow-modals allow-storage-access-by-user-activation"
+  },
+  "background": {
+    "service_worker": "src/background.js",
+    "type": "module"
+  },
+  "minimum_chrome_version": "88",
+  "oauth2": {
+    "client_id": "${CHROME_CLIENT_ID}",
+    "scopes": [
+      "https://www.googleapis.com/auth/userinfo.email"
+    ]
+  }
 }
-

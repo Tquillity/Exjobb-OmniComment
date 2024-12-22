@@ -3,11 +3,11 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build && cp manifest.json dist/ && cp -r ../public/icons dist/",
-    "lint": "eslint ."
-  },
+"scripts": {
+  "dev": "vite",
+  "build": "vite build && mkdir -p dist/src && cp manifest.json dist/ && cp src/background.js dist/src/ && cp src/content.js dist/src/ && cp -r ../public/icons dist/",
+  "lint": "eslint ."
+},
   "dependencies": {
     "@headlessui/react": "^2.2.0",
     "react": "^18.3.1",
