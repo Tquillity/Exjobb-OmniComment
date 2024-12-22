@@ -1,5 +1,5 @@
 // Frontend/extension/src/components/Comment.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ThumbsUp, ThumbsDown, MoreVertical, Flag, Trash } from 'lucide-react';
 import { Menu } from '@headlessui/react';
 import { useAuth } from '../contexts/AuthContext';
@@ -18,13 +18,50 @@ const Comment = ({
   onDelete,
   onReport 
 }) => {
+  console.log('Comment component rendered with:', { 
+    walletAddress, 
+    username,
+    content 
+  });
+
   const { user, isAuthenticated } = useAuth();
   const { preferences } = usePreferences();
   const [isActionLoading, setIsActionLoading] = useState(false);
+  const [authorDisplayName, setAuthorDisplayName] = useState(
+    username || `${walletAddress.substring(0, 6)}...${walletAddress.substring(38)}`
+  );
 
   const isOwner = isAuthenticated && user?.walletAddress === walletAddress;
   const hasLiked = likes.includes(user?.walletAddress);
   const hasDisliked = dislikes.includes(user?.walletAddress);
+
+  // Fetch author's display preferences
+  useEffect(() => {
+    console.log('useEffect triggered in Comment component');
+    const fetchAuthorPreferences = async () => {
+      try {
+        console.log('Fetching preferences for wallet:', walletAddress);
+        const response = await fetch(`http://localhost:3000/api/users/${walletAddress}`);
+        if (!response.ok) throw new Error('Failed to fetch user preferences');
+        
+        const authorData = await response.json();
+        console.log('Received author data:', authorData);
+        
+        if (authorData.displayPreference === 'username' && authorData.username) {
+          console.log('Setting display name to username:', authorData.username);
+          setAuthorDisplayName(authorData.username);
+        } else {
+          console.log('Setting display name to wallet address');
+          setAuthorDisplayName(`${walletAddress.substring(0, 6)}...${walletAddress.substring(38)}`);
+        }
+      } catch (error) {
+        console.error('Error fetching author preferences:', error);
+        setAuthorDisplayName(`${walletAddress.substring(0, 6)}...${walletAddress.substring(38)}`);
+      }
+    };
+  
+    fetchAuthorPreferences();
+  }, [walletAddress, username]);
 
   const handleLike = async () => {
     if (!isAuthenticated) return;
@@ -84,12 +121,6 @@ const Comment = ({
     }
   };
 
-  // Determine display name based on preferences
-  const displayName = username || 
-    (preferences.comments?.showWalletAddress 
-      ? `${walletAddress.substring(0, 6)}...${walletAddress.substring(38)}`
-      : 'Anonymous');
-
   return (
     <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow space-y-2">
       {/* Content */}
@@ -132,7 +163,7 @@ const Comment = ({
 
           {/* User Info */}
           <span className="text-gray-600 dark:text-gray-300 font-medium">
-            {displayName}
+            {authorDisplayName}
           </span>
         </div>
 

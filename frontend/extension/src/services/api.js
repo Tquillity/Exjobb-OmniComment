@@ -58,10 +58,13 @@ export const fetchComments = async (url) => {
 
 export const postComment = async (data) => {
   try {
-    return await authenticatedRequest('/comments', {
+    console.log('Posting new comment with data:', data);
+    const result = await authenticatedRequest('/comments', {
       method: 'POST',
       body: JSON.stringify(data),
     });
+    console.log('New comment response:', result);
+    return result;
   } catch (error) {
     console.error('Error posting comment:', error);
     throw error;

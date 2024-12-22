@@ -71,11 +71,38 @@ export function AuthProvider({ children }) {
 
   const updateUser = async (updates) => {
     try {
-      const updatedUser = { ...user, ...updates };
+      // Get the current auth token
+      const result = await chrome.storage.local.get(['token']);
+      if (!result.token) {
+        throw new Error('No authentication token found');
+      }
+
+      // Send update to backend
+      const response = await fetch(`http://localhost:3000/api/users/${user.walletAddress}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${result.token}`
+        },
+        body: JSON.stringify(updates)
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update user');
+      }
+
+      // Get updated user data from response
+      const updatedUser = await response.json();
+
+      // Update local storage and state
       await chrome.storage.local.set({ user: updatedUser });
       setUser(updatedUser);
+      
+      return updatedUser;
     } catch (error) {
       console.error('Error updating user:', error);
+      throw error;
     }
   };
 

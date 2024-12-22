@@ -76,7 +76,8 @@ router.get('/:walletAddress', async (req, res) => {
 router.put('/:walletAddress', [
   body('username').optional().trim().isLength({ min: 2, max: 50 }),
   body('age').optional().isInt({ min: 13, max: 120 }),
-  body('nationality').optional().trim().isLength({ max: 100 })
+  body('nationality').optional().trim().isLength({ max: 100 }),
+  body('displayPreference').optional().isIn(['wallet', 'username'])
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -84,7 +85,7 @@ router.put('/:walletAddress', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { username, age, nationality } = req.body;
+    const { username, age, nationality, displayPreference } = req.body;
     const walletAddress = req.params.walletAddress;
 
     const user = await User.findOne({ walletAddress });
@@ -95,8 +96,11 @@ router.put('/:walletAddress', [
     if (username !== undefined) user.username = username;
     if (age !== undefined) user.age = age;
     if (nationality !== undefined) user.nationality = nationality;
+    if (displayPreference !== undefined) user.displayPreference = displayPreference;
 
     await user.save();
+    
+    console.log('Updated user:', user); // For debugging
     res.json(user);
   } catch (error) {
     console.error('Update error:', error);

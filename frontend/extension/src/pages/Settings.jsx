@@ -4,6 +4,7 @@ import AppearanceSettings from '../components/AppearanceSettings';
 import { useNavigation } from '../contexts/NavigationContext';
 import { ChevronLeft, X } from 'lucide-react';
 import CommentPreferences from '../components/CommentPreferences';
+import UserProfile from '../components/UserProfile';
 
 const Settings = () => {
   const { navigateTo, goBack, closeAll, currentParams } = useNavigation();
@@ -15,6 +16,8 @@ const Settings = () => {
         return <AppearanceSettings />;
       case 'comments':
         return <CommentPreferences />;
+      case 'profile':
+        return <UserProfile />;
       default:
         return null;
     }
@@ -61,6 +64,22 @@ const Settings = () => {
             </button>
 
             <button
+              onClick={() => handleCategoryClick('profile')}
+              className="w-full p-3 flex items-center space-x-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              <span className="text-xl">👤</span>
+              <span>Profile Settings</span>
+            </button>
+
+            <button
+              onClick={() => handleCategoryClick('comments')}
+              className="w-full p-3 flex items-center space-x-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              <span className="text-xl">💭</span>
+              <span>Comment Preferences</span>
+            </button>
+
+            <button
               onClick={() => handleCategoryClick('notifications')}
               className="w-full p-3 flex items-center space-x-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             >
@@ -74,14 +93,6 @@ const Settings = () => {
             >
               <span className="text-xl">🔒</span>
               <span>Privacy & Security</span>
-            </button>
-
-            <button
-              onClick={() => handleCategoryClick('comments')}
-              className="w-full p-3 flex items-center space-x-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            >
-              <span className="text-xl">💭</span>
-              <span>Comment Preferences</span>
             </button>
 
             <button

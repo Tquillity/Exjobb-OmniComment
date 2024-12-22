@@ -51,6 +51,12 @@ const SettingsMenu = () => {
       className: 'text-gray-700 dark:text-gray-200'
     },
     {
+      icon: MessageSquare,
+      label: 'Comment Preferences',
+      action: () => navigateTo('settings', { category: 'comments' }),
+      className: 'text-gray-700 dark:text-gray-200'
+    },
+    {
       icon: Shield,
       label: 'Privacy & Security',
       action: () => navigateTo('settings', { category: 'privacy' }),

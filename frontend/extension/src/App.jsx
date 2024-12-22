@@ -13,6 +13,7 @@ import About from './pages/About';
 import MyComments from './pages/MyComments';
 import { formatTimestamp } from './utils/timeFormat';
 import Statistics from './pages/Statistics';
+import Comment from './components/Comment';
 
 function AppContent() {
   const { currentPage } = useNavigation();
@@ -53,11 +54,14 @@ function AppContent() {
     }
 
     try {
+      console.log('Submitting comment with user:', user);
       const newComment = await postComment({
         url: currentUrl,
         content,
         walletAddress: user.walletAddress,
+        username: user.username
       });
+      console.log('Received new comment:', newComment);
       setComments(prev => [newComment, ...prev]);
     } catch (error) {
       console.error('Error posting comment:', error);
@@ -135,18 +139,19 @@ function AppContent() {
                   ) : (
                     comments.map((comment) => (
                       <div key={comment._id} className="p-3 bg-white dark:bg-gray-800 rounded shadow">
-                        <p className="break-words">{comment.content}</p>
-                        <div className="mt-2 text-sm text-gray-500 dark:text-gray-400 flex justify-between">
-                          <span>{formatTimestamp(comment.createdAt)}</span>
-                          <span className="text-xs truncate" title={comment.walletAddress}>
-                            {comment.walletAddress.substring(0, 6)}...{comment.walletAddress.substring(38)}
-                          </span>
-                        </div>
+                        <Comment 
+                          content={comment.content}
+                          timestamp={comment.createdAt}
+                          walletAddress={comment.walletAddress}
+                          username={comment.username}
+                          likes={comment.likes}
+                          dislikes={comment.dislikes}
+                        />
                       </div>
                     ))
                   )}
                 </div>
-              </div>
+               </div>
             </div>
           </>
         );
