@@ -11,7 +11,6 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { fetchComments, postComment } from './services/api';
 import About from './pages/About';
 import MyComments from './pages/MyComments';
-import { formatTimestamp } from './utils/timeFormat';
 import Statistics from './pages/Statistics';
 import Comment from './components/Comment';
 
