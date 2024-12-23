@@ -41,19 +41,29 @@ const config = {
   },
   etherscan: {
     apiKey: {
-      polygonMumbai: POLYGONSCAN_API_KEY
-    }
+      polygonAmoy: POLYGONSCAN_API_KEY
+    },
+    customChains: [
+      {
+        network: "polygonAmoy",
+        chainId: 80002,
+        urls: {
+          apiURL: "https://api-testnet.polygonscan.com/api",
+          browserURL: "https://www.oklink.com/amoy"
+        }
+      }
+    ]
+  },
+  gasReporter: {
+    enabled: process.env.REPORT_GAS ? true : false,
+    currency: "USD",
+    token: "MATIC"
   },
   paths: {
     sources: "./contracts",
     tests: "./test",
     cache: "./cache",
     artifacts: "./artifacts"
-  },
-  gasReporter: {
-    enabled: process.env.ENABLE_GAS_REPORTER === "true",
-    currency: "USD",
-    token: "MATIC"
   }
 };
 

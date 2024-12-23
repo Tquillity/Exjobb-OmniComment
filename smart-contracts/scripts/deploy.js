@@ -1,61 +1,74 @@
-// hardhat.config.js
-require("@nomicfoundation/hardhat-toolbox");
-require("solidity-coverage");
-require("dotenv").config();
+const { ethers } = require("hardhat");
 
-// Ensure required environment variables are set
-const AMOY_RPC_URL = process.env.AMOY_RPC_URL || "https://rpc-amoy.polygon.technology";
-const PRIVATE_KEY = process.env.PRIVATE_KEY || "0000000000000000000000000000000000000000000000000000000000000000";
-const POLYGONSCAN_API_KEY = process.env.POLYGONSCAN_API_KEY || "";
+async function main() {
+  try {
+    console.log("Starting deployment process...");
 
-// Validate private key
-if (!process.env.PRIVATE_KEY) {
-  console.warn("⚠️  Warning: PRIVATE_KEY not found in .env file. Using default (invalid) key.");
+    // Get deployer account
+    const [deployer] = await ethers.getSigners();
+    console.log("Deploying with account:", deployer.address);
+
+    // Get deployer balance
+    const balance = await ethers.provider.getBalance(deployer.address);
+    console.log("Account balance:", ethers.formatEther(balance), "POL");
+
+    // Deploy OmniCommentPayment contract
+    console.log("\nDeploying OmniCommentPayment contract...");
+    const OmniCommentPayment = await ethers.getContractFactory("OmniCommentPayment");
+    const omniComment = await OmniCommentPayment.deploy();
+    await omniComment.waitForDeployment();
+
+    console.log("OmniCommentPayment deployed to:", omniComment.target);
+
+    // Wait for additional block confirmations
+    console.log("\nWaiting for block confirmations...");
+    await omniComment.deploymentTransaction().wait(5);
+    console.log("Additional blocks confirmed");
+
+    // Verify contract if on Polygon Amoy network
+    if (network.name === "amoy" && process.env.POLYGONSCAN_API_KEY) {
+      console.log("\nVerifying contract on Polygon Amoy...");
+      try {
+        await hre.run("verify:verify", {
+          address: omniComment.target,
+          constructorArguments: []
+        });
+        console.log("Contract verification successful");
+      } catch (error) {
+        console.log("Verification failed:", error);
+      }
+    }
+
+    // Log deployment details
+    console.log("\nDeployment completed successfully!");
+    console.log("Contract address:", omniComment.target);
+    console.log("Network:", network.name);
+    console.log("Block number:", await ethers.provider.getBlockNumber());
+    
+    // Save deployment info to a file
+    const fs = require("fs");
+    const deploymentInfo = {
+      network: network.name,
+      contractAddress: omniComment.target,
+      deploymentTime: new Date().toISOString(),
+      deployer: deployer.address
+    };
+    
+    fs.writeFileSync(
+      "deployment-info.json",
+      JSON.stringify(deploymentInfo, null, 2)
+    );
+    console.log("\nDeployment info saved to deployment-info.json");
+
+  } catch (error) {
+    console.error("Deployment failed:", error);
+    process.exit(1);
+  }
 }
 
-/** @type {import('hardhat/config').HardhatUserConfig} */
-const config = {
-  solidity: {
-    version: "0.8.28",
-    settings: {
-      optimizer: {
-        enabled: true,
-        runs: 200
-      }
-    }
-  },
-  networks: {
-    hardhat: {
-      chainId: 31337
-    },
-    amoy: {
-      url: AMOY_RPC_URL,
-      accounts: [PRIVATE_KEY],
-      chainId: 80002,
-      gasPrice: "auto",
-      verify: {
-        etherscan: {
-          apiUrl: "https://api-testnet.polygonscan.com/"
-        }
-      }
-    }
-  },
-  etherscan: {
-    apiKey: {
-      polygonMumbai: POLYGONSCAN_API_KEY
-    }
-  },
-  paths: {
-    sources: "./contracts",
-    tests: "./test",
-    cache: "./cache",
-    artifacts: "./artifacts"
-  },
-  gasReporter: {
-    enabled: process.env.ENABLE_GAS_REPORTER === "true",
-    currency: "USD",
-    token: "MATIC"
-  }
-};
-
-module.exports = config;
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
