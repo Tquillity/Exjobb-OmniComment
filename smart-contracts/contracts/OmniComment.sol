@@ -76,20 +76,21 @@ contract OmniCommentPayment is Ownable, ReentrancyGuard, Pausable {
         if (msg.value != amount) {
             revert InsufficientPayment(amount, msg.value);
         }
-
+        
         netAmount = amount;
         
         if (checkReferral && !users[payer].hasReferrer) {
             address referrer = referrers[payer];
             if (referrer != address(0)) {
                 uint256 commission = (amount * REFERRAL_COMMISSION) / 1000;
-                (bool sent,) = referrer.call{value: commission}("");
-                if (sent) {
-                    netAmount -= commission;
-                    users[payer].hasReferrer = true;
-                    emit ReferralPaid(referrer, commission);
-                    emit ReferralRegistered(referrer, payer);
+                (bool success,) = referrer.call{value: commission}("");
+                if (!success) {
+                    revert TransactionFailed();
                 }
+                netAmount -= commission;
+                users[payer].hasReferrer = true;
+                emit ReferralPaid(referrer, commission);
+                emit ReferralRegistered(referrer, payer);
             }
         }
 

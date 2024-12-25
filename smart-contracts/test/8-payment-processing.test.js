@@ -24,19 +24,41 @@ describe("8 - Payment Processing", function () {
             )
         ).to.be.revertedWithCustomError(contract, "InsufficientPayment");
     });
-    
-    it("Should handle failed referral payments gracefully", async function () {
+
+    it("Should revert on failed referral payments", async function () {
         const MockFailingWallet = await ethers.getContractFactory("MockFailingWallet");
         const mockWallet = await MockFailingWallet.deploy();
         
-        await expect(contract.connect(user1).purchaseSubscription(
-            MONTHLY_DURATION,
-            await mockWallet.getAddress(),
-            { value: MONTHLY_SUB_COST }
-        )).to.not.be.reverted;
+        await expect(
+            contract.connect(user1).purchaseSubscription(
+                MONTHLY_DURATION,
+                await mockWallet.getAddress(),
+                { value: MONTHLY_SUB_COST }
+            )
+        ).to.be.revertedWithCustomError(contract, "TransactionFailed");
+    });
 
+    it("Should handle successful referral payments", async function () {
+        // First user makes purchase with referrer
+        await contract.connect(user1).purchaseSubscription(
+            MONTHLY_DURATION,
+            user2.address,  // Regular wallet address as referrer
+            { value: MONTHLY_SUB_COST }
+        );
+    
+        // Check referral was processed
         const userInfo = await contract.getUserInfo(user1.address);
-        expect(userInfo.hasSubscription).to.be.true;
+        expect(userInfo.hasReferrer).to.be.true;
+    });
+
+    it("Should handle zero address referrer", async function () {
+        await contract.connect(user1).purchaseSubscription(
+            MONTHLY_DURATION,
+            ethers.ZeroAddress,
+            { value: MONTHLY_SUB_COST }
+        );
+        
+        const userInfo = await contract.getUserInfo(user1.address);
         expect(userInfo.hasReferrer).to.be.false;
     });
 
