@@ -1,4 +1,3 @@
-// smart-contracts/contracts/OmniComment.sol
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
@@ -9,6 +8,7 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
 /**
  * @title OmniCommentPayment
  * @notice Handles payment logic for comments and subscriptions with deposit pool functionality
+ * @dev Implements deposit system, subscriptions, daily passes, and referral program
  */
 contract OmniCommentPayment is Ownable, ReentrancyGuard, Pausable {
     // Constants for pricing
@@ -32,6 +32,7 @@ contract OmniCommentPayment is Ownable, ReentrancyGuard, Pausable {
         bool hasSubscription;        // Whether user has an active subscription
         uint256 dailyPasses;        // Number of daily passes available
         uint256 passesExpiry;       // Timestamp when passes expire
+        bool hasReferrer;           // Whether user has already used a referral
     }
 
     // State variables
@@ -49,176 +50,254 @@ contract OmniCommentPayment is Ownable, ReentrancyGuard, Pausable {
     event ReferralRegistered(address indexed referrer, address indexed referee);
     event ReferralPaid(address indexed referrer, uint256 amount);
 
+    // Custom errors
+    error InsufficientPayment(uint256 required, uint256 provided);
+    error InvalidDuration(uint256 provided, uint256 maxAllowed);
+    error InvalidRecipient();
+    error InsufficientBalance(uint256 required, uint256 available);
+    error TransactionFailed();
+    error Unauthorized();
+
     constructor() Ownable(msg.sender) {}
 
-    // Deposit functions
+    /**
+     * @notice Process incoming payment and handle referral if applicable
+     * @param payer Address making the payment
+     * @param amount Required payment amount
+     * @param checkReferral Whether to process referral
+     * @return netAmount Amount after referral commission
+     */
+    function _processPayment(
+        address payer,
+        uint256 amount,
+        bool checkReferral
+    ) internal returns (uint256 netAmount) {
+        // Require exact payment - no excess allowed
+        if (msg.value != amount) {
+            revert InsufficientPayment(amount, msg.value);
+        }
+
+        netAmount = amount;
+        
+        if (checkReferral && !users[payer].hasReferrer) {
+            address referrer = referrers[payer];
+            if (referrer != address(0)) {
+                uint256 commission = (amount * REFERRAL_COMMISSION) / 1000;
+                (bool sent,) = referrer.call{value: commission}("");
+                if (sent) {
+                    netAmount -= commission;
+                    users[payer].hasReferrer = true;
+                    emit ReferralPaid(referrer, commission);
+                    emit ReferralRegistered(referrer, payer);
+                }
+            }
+        }
+
+        return netAmount;
+    }
+
+    /**
+     * @notice Update user's subscription status
+     * @param user Address of the subscriber
+     * @param duration Duration to add to subscription
+     */
+    function _updateSubscription(
+        address user,
+        uint256 duration
+    ) internal returns (bool) {
+        if (duration % DAILY_DURATION != 0) {
+            revert InvalidDuration(duration, MAX_DAILY_COUNT * DAILY_DURATION);
+        }
+
+        UserInfo storage info = users[user];
+        
+        if (info.hasSubscription && info.subscriptionExpiry > block.timestamp) {
+            info.subscriptionExpiry += duration;
+        } else {
+            info.subscriptionExpiry = block.timestamp + duration;
+            info.hasSubscription = true;
+        }
+
+        emit SubscriptionPurchased(user, duration);
+        return true;
+    }
+
+    /**
+     * @notice Calculate subscription cost based on duration
+     * @param duration Time period for subscription
+     * @return cost Total cost for the subscription
+     */
+    function _calculateSubscriptionCost(
+        uint256 duration
+    ) internal pure returns (uint256) {
+        if (duration == YEARLY_DURATION) return YEARLY_SUB_COST;
+        if (duration == MONTHLY_DURATION) return MONTHLY_SUB_COST;
+        
+        uint256 daysCount = duration / DAILY_DURATION;
+        if (daysCount == 0 || daysCount > MAX_DAILY_COUNT) {
+            revert InvalidDuration(duration, MAX_DAILY_COUNT * DAILY_DURATION);
+        }
+        
+        return DAILY_SUB_COST * daysCount;
+    }
+
+    /**
+     * @notice Allow users to deposit funds for comments
+     */
     function deposit() external payable whenNotPaused {
-        require(msg.value >= MIN_DEPOSIT, "Deposit below minimum");
+        if (msg.value < MIN_DEPOSIT) {
+            revert InsufficientPayment(MIN_DEPOSIT, msg.value);
+        }
+        
         users[msg.sender].depositBalance += msg.value;
         totalDeposits += msg.value;
         emit Deposit(msg.sender, msg.value);
     }
 
+    /**
+     * @notice Allow users to withdraw their deposits
+     * @param amount Amount to withdraw
+     */
     function withdraw(uint256 amount) external nonReentrant whenNotPaused {
-        require(amount <= users[msg.sender].depositBalance, "Insufficient balance");
-        users[msg.sender].depositBalance -= amount;
+        UserInfo storage user = users[msg.sender];
+        if (amount > user.depositBalance) {
+            revert InsufficientBalance(amount, user.depositBalance);
+        }
+
+        user.depositBalance -= amount;
         totalDeposits -= amount;
+        
         (bool sent,) = msg.sender.call{value: amount}("");
-        require(sent, "Withdrawal failed");
+        if (!sent) revert TransactionFailed();
+        
         emit Withdrawal(msg.sender, amount);
     }
 
-    // Comment payment function - only callable by backend
+    /**
+     * @notice Process payment for a comment
+     * @param user Address of the commenter
+     */
     function processCommentPayment(address user) external whenNotPaused {
-        require(
-            msg.sender == owner() || msg.sender == address(this),
-            "Unauthorized"
-        );
-        
-        if (!canComment(user)) {
-            revert("User cannot comment");
+        if (msg.sender != owner() && msg.sender != address(this)) {
+            revert Unauthorized();
         }
 
-        // If user has an active subscription (any type), they can comment for free
+        if (!canComment(user)) {
+            revert InsufficientBalance(COMMENT_COST, users[user].depositBalance);
+        }
+
         UserInfo storage info = users[user];
         if (info.hasSubscription && info.subscriptionExpiry > block.timestamp) {
             return;
         }
 
-        // Otherwise, deduct from deposit balance
-        require(info.depositBalance >= COMMENT_COST, "Insufficient deposit");
         info.depositBalance -= COMMENT_COST;
         totalDeposits -= COMMENT_COST;
         emit CommentPaid(user, COMMENT_COST);
     }
 
-    // Subscription purchase
-    function purchaseSubscription(uint256 duration, address referrer) external payable nonReentrant whenNotPaused {
-        uint256 cost;
+    /**
+     * @notice Purchase a subscription with optional referral
+     * @param duration Length of subscription
+     * @param referrer Address of referrer
+     */
+    function purchaseSubscription(
+        uint256 duration,
+        address referrer
+    ) external payable nonReentrant whenNotPaused {
+        uint256 cost = _calculateSubscriptionCost(duration);
         
-        // Calculate cost based on duration
-        if (duration == YEARLY_DURATION) {
-            cost = YEARLY_SUB_COST;
-        } else if (duration == MONTHLY_DURATION) {
-            cost = MONTHLY_SUB_COST;
-        } else {
-            // Convert duration to days
-            uint256 dayCount = duration / DAILY_DURATION;
-            require(dayCount > 0 && dayCount <= MAX_DAILY_COUNT, "Invalid duration");
-            cost = DAILY_SUB_COST * dayCount;
-        }
-
-        require(msg.value >= cost, "Insufficient payment");
-
-        // Handle referral
-        if (referrer != address(0) && referrers[msg.sender] == address(0)) {
+        if (referrer != address(0) && !users[msg.sender].hasReferrer) {
             referrers[msg.sender] = referrer;
-            uint256 commission = (msg.value * REFERRAL_COMMISSION) / 1000;
-            (bool sent,) = referrer.call{value: commission}("");
-            if (sent) {
-                emit ReferralPaid(referrer, commission);
-            }
-            emit ReferralRegistered(referrer, msg.sender);
         }
-
-        // Update subscription - stack duration if already subscribed
-        UserInfo storage info = users[msg.sender];
-        if (info.hasSubscription && info.subscriptionExpiry > block.timestamp) {
-            info.subscriptionExpiry += duration;  // Add to existing duration
-        } else {
-            info.subscriptionExpiry = block.timestamp + duration;  // Start new subscription
-            info.hasSubscription = true;
-        }
-        emit SubscriptionPurchased(msg.sender, duration);
+        _processPayment(msg.sender, cost, true);
+        _updateSubscription(msg.sender, duration);
     }
 
-    // Gift subscription
-    function giftSubscription(address to, uint256 duration) external payable nonReentrant whenNotPaused {
-        require(to != address(0), "Invalid recipient");
-        uint256 cost;
+    /**
+     * @notice Gift a subscription to another user
+     * @param to Recipient address
+     * @param duration Length of subscription
+     */
+    function giftSubscription(
+        address to,
+        uint256 duration
+    ) external payable nonReentrant whenNotPaused {
+        if (to == address(0)) revert InvalidRecipient();
         
-        // Calculate cost based on duration
-        if (duration == YEARLY_DURATION) {
-            cost = YEARLY_SUB_COST;
-        } else if (duration == MONTHLY_DURATION) {
-            cost = MONTHLY_SUB_COST;
-        } else {
-            // Convert duration to days
-            uint256 dayCount = duration / DAILY_DURATION;
-            require(dayCount > 0 && dayCount <= MAX_DAILY_COUNT, "Invalid duration");
-            cost = DAILY_SUB_COST * dayCount;
-        }
-
-        require(msg.value >= cost, "Insufficient payment");
-
-        // Update recipient's subscription - stack duration if already subscribed
-        UserInfo storage info = users[to];
-        if (info.hasSubscription && info.subscriptionExpiry > block.timestamp) {
-            info.subscriptionExpiry += duration;  // Add to existing duration
-        } else {
-            info.subscriptionExpiry = block.timestamp + duration;  // Start new subscription
-            info.hasSubscription = true;
-        }
-        emit SubscriptionPurchased(to, duration);
+        uint256 cost = _calculateSubscriptionCost(duration);
+        _processPayment(msg.sender, cost, true);
+        _updateSubscription(to, duration);
     }
 
-    // Internal function to handle referral commission
-    function handleReferralCommission(uint256 payment) internal {
-        address referrer = referrers[msg.sender];
-        if (referrer != address(0)) {
-            uint256 commission = (payment * REFERRAL_COMMISSION) / 1000; // 7.5%
-            (bool sent,) = referrer.call{value: commission}("");
-            if (sent) {
-                emit ReferralPaid(referrer, commission);
-            }
-        }
-    }
-
-    // Daily pass functions
-    function purchaseDailyPasses(uint256 count) external payable nonReentrant whenNotPaused {
-        require(count > 0, "Must purchase at least one pass");
+    /**
+     * @notice Purchase daily passes
+     * @param count Number of passes to purchase
+     */
+    function purchaseDailyPasses(
+        uint256 count
+    ) external payable nonReentrant whenNotPaused {
+        if (count == 0) revert InvalidDuration(0, MAX_DAILY_COUNT);
+        
         uint256 totalCost = DAILY_SUB_COST * count;
-        require(msg.value >= totalCost, "Insufficient payment");
-
+        _processPayment(msg.sender, totalCost, true);
         _addDailyPasses(msg.sender, count);
-        handleReferralCommission(msg.value);
+        
         emit DailyPassPurchased(msg.sender, count);
     }
 
-    function giftDailyPass(address to, uint256 count) external payable nonReentrant whenNotPaused {
-        require(count > 0, "Must gift at least one pass");
-        require(to != address(0), "Invalid recipient");
+    /**
+     * @notice Gift daily passes to another user
+     * @param to Recipient address
+     * @param count Number of passes to gift
+     */
+    function giftDailyPass(
+        address to,
+        uint256 count
+    ) external payable nonReentrant whenNotPaused {
+        if (to == address(0)) revert InvalidRecipient();
+        if (count == 0) revert InvalidDuration(0, MAX_DAILY_COUNT);
+        
         uint256 totalCost = GIFTED_PASS_COST * count;
-        require(msg.value >= totalCost, "Insufficient payment");
-
+        _processPayment(msg.sender, totalCost, true);
         _addDailyPasses(to, count);
-        handleReferralCommission(msg.value);
+        
         emit DailyPassGifted(msg.sender, to, count);
     }
 
+    /**
+     * @notice Add daily passes to a user's account
+     * @param user Recipient address
+     * @param count Number of passes to add
+     */
     function _addDailyPasses(address user, uint256 count) internal {
         UserInfo storage info = users[user];
         
-        // If passes have expired, reset count and set new expiry
         if (info.passesExpiry < block.timestamp) {
             info.dailyPasses = count;
             info.passesExpiry = block.timestamp + (count * DAILY_DURATION);
         } else {
-            // Add to existing passes and extend expiry
             info.dailyPasses += count;
             info.passesExpiry += (count * DAILY_DURATION);
         }
     }
 
-    // View functions
+    /**
+     * @notice Check if a user can comment
+     * @param user Address to check
+     * @return bool Whether user can comment
+     */
     function canComment(address user) public view returns (bool) {
         UserInfo memory info = users[user];
-        return (
-            (info.hasSubscription && info.subscriptionExpiry > block.timestamp) ||
-            info.depositBalance >= COMMENT_COST
-        );
+        return (info.hasSubscription && info.subscriptionExpiry > block.timestamp) ||
+               info.depositBalance >= COMMENT_COST;
     }
 
+    /**
+     * @notice Get user information
+     * @param user Address to query
+     * @return UserInfo User's current status
+     */
     function getUserInfo(address user) external view returns (UserInfo memory) {
         return users[user];
     }
@@ -232,14 +311,17 @@ contract OmniCommentPayment is Ownable, ReentrancyGuard, Pausable {
         _unpause();
     }
 
+    /**
+     * @notice Withdraw excess funds (excluding user deposits)
+     */
     function withdrawFunds() external onlyOwner {
         uint256 balance = address(this).balance - totalDeposits;
-        require(balance > 0, "No balance to withdraw");
+        if (balance == 0) revert InsufficientBalance(1, 0);
+        
         (bool sent,) = owner().call{value: balance}("");
-        require(sent, "Withdrawal failed");
+        if (!sent) revert TransactionFailed();
     }
 
-    // Fallback functions
     receive() external payable {}
     fallback() external payable {}
 }
