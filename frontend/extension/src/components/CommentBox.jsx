@@ -1,21 +1,27 @@
 // Frontend/extension/src/components/CommentBox.jsx
-import { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { usePreferences } from '../contexts/PreferencesContext';
-import { useNavigation } from '../contexts/NavigationContext';
+import { BalanceContext } from '../contexts/BalanceContext';
+import { AlertCircle } from 'lucide-react';
 
-export default function CommentBox({ onSubmit }) {
+const COMMENT_COST = 0.001; // 0.001 POL per comment
+
+export default function EnhancedCommentBox({ onSubmit }) {
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  
   const { isAuthenticated, user } = useAuth();
   const { preferences } = usePreferences();
-  const { navigateTo } = useNavigation();
+  const { balance, updateBalance } = useContext(BalanceContext);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
     
     if (!isAuthenticated) {
-      navigateTo('login');
+      setError('Please connect your wallet to comment');
       return;
     }
 
@@ -23,38 +29,53 @@ export default function CommentBox({ onSubmit }) {
       return;
     }
 
+    // Check if user has enough balance
+    const currentBalance = parseFloat(balance);
+    if (currentBalance < COMMENT_COST) {
+      setError(`Insufficient balance. You need ${COMMENT_COST} POL to comment. Current balance: ${currentBalance.toFixed(4)} POL`);
+      return;
+    }
+
     try {
       setIsSubmitting(true);
+      
+      // Verify balance on backend first
+      const verifyResponse = await fetch('http://localhost:3000/api/blockchain/can-comment', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        }
+      });
+      
+      const verifyData = await verifyResponse.json();
+      if (!verifyData.canComment) {
+        setError('You do not have sufficient balance to comment');
+        return;
+      }
+
+      // If verification passes, submit the comment
       await onSubmit?.(comment);
+      
+      // After successful comment, update balance
+      await updateBalance();
+      
+      // Clear comment
       setComment('');
+      setError('');
+      
     } catch (error) {
       console.error('Error submitting comment:', error);
+      setError(error.message || 'Failed to submit comment');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Show preview if enabled in preferences
-  const showPreview = preferences.comments?.showPreview && comment.trim().length > 0;
-
-  // Rich text options if enabled
-  const richTextEnabled = preferences.comments?.richTextEnabled;
-
   if (!isAuthenticated) {
     return (
-      <div className="space-y-4">
-        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-md">
-          <p className="text-sm text-blue-700 dark:text-blue-300">
-            Please log in to comment on this page.
-          </p>
-          <button
-            onClick={() => navigateTo('login')}
-            className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-md 
-                     hover:bg-blue-700 transition-colors text-sm font-medium"
-          >
-            Login to Comment
-          </button>
-        </div>
+      <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-md">
+        <p className="text-sm text-blue-700 dark:text-blue-300">
+          Please connect your wallet to comment
+        </p>
       </div>
     );
   }
@@ -63,11 +84,9 @@ export default function CommentBox({ onSubmit }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
         {/* User info */}
-        <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
-          <span>Commenting as:</span>
-          <span className="font-medium">
-            {user.username || `${user.walletAddress.substring(0, 6)}...${user.walletAddress.substring(38)}`}
-          </span>
+        <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+          <span>Commenting as: {user.username || `${user.walletAddress.substring(0, 6)}...${user.walletAddress.substring(38)}`}</span>
+          <span>Cost: {COMMENT_COST} POL</span>
         </div>
 
         {/* Comment input */}
@@ -83,25 +102,14 @@ export default function CommentBox({ onSubmit }) {
           disabled={isSubmitting}
         />
 
-        {/* Preview section */}
-        {showPreview && (
-          <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
-            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Preview
-            </h3>
-            <div className="text-gray-600 dark:text-gray-400 text-sm">
-              {comment}
-            </div>
+        {/* Error message */}
+        {error && (
+          <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-2 rounded">
+            <AlertCircle className="h-4 w-4" />
+            <span>{error}</span>
           </div>
         )}
       </div>
-
-      {/* Rich text toolbar */}
-      {richTextEnabled && (
-        <div className="flex space-x-2">
-          {/* Add rich text buttons here if needed */}
-        </div>
-      )}
 
       {/* Submit button */}
       <button

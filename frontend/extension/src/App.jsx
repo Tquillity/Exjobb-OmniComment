@@ -8,6 +8,7 @@ import { NavigationProvider, useNavigation } from './contexts/NavigationContext'
 import { ThemeProvider } from './contexts/ThemeContexts';
 import { PreferencesProvider } from './contexts/PreferencesContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { BalanceProvider } from './contexts/BalanceContext';
 import { fetchComments, postComment } from './services/api';
 import About from './pages/About';
 import MyComments from './pages/MyComments';
@@ -168,11 +169,13 @@ function App() {
   return (
     <AuthProvider>
       <ThemeProvider>
-        <PreferencesProvider>   
-          <NavigationProvider>
-            <AppContent />
-          </NavigationProvider>
-        </PreferencesProvider>   
+        <BalanceProvider>
+          <PreferencesProvider>   
+            <NavigationProvider>
+              <AppContent />
+            </NavigationProvider>
+          </PreferencesProvider>   
+        </BalanceProvider>
       </ThemeProvider>
     </AuthProvider>
   );
