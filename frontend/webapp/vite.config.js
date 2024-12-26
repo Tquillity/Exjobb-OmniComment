@@ -1,6 +1,10 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
+import dotenv from 'dotenv';
+
+// Load .env file
+dotenv.config();
 
 export default defineConfig({
   plugins: [react()],
@@ -16,5 +20,8 @@ export default defineConfig({
       '@utils': resolve(__dirname, 'src/utils'),
       '@services': resolve(__dirname, 'src/services')
     }
+  },
+  define: {
+    'import.meta.env.VITE_OMNI_COMMENT_CONTRACT_ADDRESS': JSON.stringify(process.env.VITE_OMNI_COMMENT_CONTRACT_ADDRESS),
   }
 });

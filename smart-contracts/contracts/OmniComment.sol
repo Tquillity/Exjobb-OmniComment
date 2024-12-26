@@ -12,11 +12,19 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
  */
 contract OmniCommentPayment is Ownable, ReentrancyGuard, Pausable {
     // Constants for pricing
-    uint256 public constant COMMENT_COST = 0.05 ether;     // 0.05 POL
-    uint256 public constant DAILY_SUB_COST = 2 ether;      // 2 POL per day
-    uint256 public constant MONTHLY_SUB_COST = 40 ether;   // 40 POL (~33% discount)
-    uint256 public constant YEARLY_SUB_COST = 400 ether;   // 400 POL (~45% discount)
-    uint256 public constant MIN_DEPOSIT = 1 ether;         // 1 POL
+    //uint256 public constant COMMENT_COST = 0.05 ether;     // 0.05 POL
+    //uint256 public constant DAILY_SUB_COST = 2 ether;      // 2 POL per day
+    //uint256 public constant MONTHLY_SUB_COST = 40 ether;   // 40 POL (~33% discount)
+    //uint256 public constant YEARLY_SUB_COST = 400 ether;   // 400 POL (~45% discount)
+    //uint256 public constant MIN_DEPOSIT = 1 ether;         // 1 POL
+    //uint256 public constant MAX_DAILY_COUNT = 20;          // Maximum days for daily subscription
+    //uint256 public constant REFERRAL_COMMISSION = 75;      // 7.5% (75/1000)
+    //uint256 public constant GIFTED_PASS_COST = 1.5 ether;  // 1.5 POL (25% discount)
+    uint256 public constant COMMENT_COST = 0.001 ether;     // 0.05 POL
+    uint256 public constant DAILY_SUB_COST = 0.001 ether;      // 2 POL per day
+    uint256 public constant MONTHLY_SUB_COST = 0.002 ether;   // 40 POL (~33% discount)
+    uint256 public constant YEARLY_SUB_COST = 0.003 ether;   // 400 POL (~45% discount)
+    uint256 public constant MIN_DEPOSIT = 0.01 ether;         // 1 POL
     uint256 public constant MAX_DAILY_COUNT = 20;          // Maximum days for daily subscription
     uint256 public constant REFERRAL_COMMISSION = 75;      // 7.5% (75/1000)
     uint256 public constant GIFTED_PASS_COST = 1.5 ether;  // 1.5 POL (25% discount)
