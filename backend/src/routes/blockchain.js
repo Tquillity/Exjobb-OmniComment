@@ -31,10 +31,32 @@ router.get('/can-comment', verifyToken, async (req, res) => {
 router.post('/deposit', verifyToken, async (req, res) => {
   try {
     const { amount } = req.body;
-    const result = await blockchainService.deposit(req.user.walletAddress, amount);
+
+    // Add request validation
+    if (!amount || isNaN(amount) || amount <= 0) {
+      return res.status(400).json({
+        error: 'Invalid amount'
+      });
+    }
+
+    const result = await blockchainService.deposit(
+      req.user.walletAddress,
+      amount
+    );
+
+    // Update user's deposit balance in MongoDB
+    await User.findOneAndUpdate(
+      { walletAddress: req.user.walletAddress },
+      { $inc: { depositBalance: parseFloat(amount) } }
+    );
+
     res.json(result);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Deposit endpoint error:', error);
+    res.status(500).json({
+      error: error.message,
+      code: error.code
+    });
   }
 });
 
@@ -42,8 +64,8 @@ router.post('/purchase-subscription', verifyToken, async (req, res) => {
   try {
     const { duration, referrer } = req.body;
     const result = await blockchainService.purchaseSubscription(
-      req.user.walletAddress, 
-      duration, 
+      req.user.walletAddress,
+      duration,
       referrer
     );
     res.json(result);
@@ -56,7 +78,7 @@ router.post('/purchase-daily-passes', verifyToken, async (req, res) => {
   try {
     const { count } = req.body;
     const result = await blockchainService.purchaseDailyPasses(
-      req.user.walletAddress, 
+      req.user.walletAddress,
       count
     );
     res.json(result);

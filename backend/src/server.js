@@ -1,13 +1,45 @@
 // Backend/src/server.js
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import mongoose from 'mongoose';
-import dotenv from 'dotenv';
 import { rateLimit } from 'express-rate-limit';
 import routes from './routes/index.js';
+import BlockchainService from './services/blockchainService.js';
 
-dotenv.config();
+// Log the env variables to see which ones are set
+console.log('MONGODB_URI:', process.env.MONGODB_URI);
+console.log('JWT_SECRET:', process.env.JWT_SECRET);
+console.log('POLYGON_RPC_URL:', process.env.POLYGON_RPC_URL);
+console.log('OMNI_COMMENT_CONTRACT_ADDRESS:', process.env.OMNI_COMMENT_CONTRACT_ADDRESS);
+
+// Verify required environment variables
+const requiredEnvVars = [
+  'MONGODB_URI', 
+  'JWT_SECRET',
+  'POLYGON_RPC_URL',
+  'OMNI_COMMENT_CONTRACT_ADDRESS'
+];
+const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+if (missingEnvVars.length > 0) {
+  console.error('Missing required environment variables:', missingEnvVars);
+  process.exit(1);
+}
+
+// Initiate Blockchain Service after dotenv is configured:
+let blockchainService;
+(async () => {
+  try {
+    blockchainService = await BlockchainService.initialize();
+    console.log('Blockchain service initialized!');
+  } catch (error) {
+    console.error('Failed to initialize BlockchainService:', error);
+    process.exit(1);
+  }
+})();
 
 // MongoDB debugging
 mongoose.set('debug', true); // Enable mongoose debug mode
@@ -23,7 +55,7 @@ const corsOptions = {
     /^chrome-extension:\/\/.*$/ // Chrome extensions
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Accept', 'Authorization'], // Added Authorization
+  allowedHeaders: ['Content-Type', 'Accept', 'Authorization'],
   credentials: true
 };
 
@@ -32,7 +64,7 @@ app.use(cors(corsOptions));
 // Global rate limiter
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: 100
 });
 
 // Middleware setup...
@@ -44,9 +76,7 @@ app.use(limiter); // Apply rate limiting to all routes
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => {
     console.log('Successfully connected to MongoDB.');
-    // Log the current database name
     console.log('Database:', mongoose.connection.name);
-    // Log collections
     mongoose.connection.db.listCollections().toArray((err, collections) => {
       if (err) {
         console.error('Error listing collections:', err);
@@ -57,7 +87,10 @@ mongoose.connect(process.env.MONGODB_URI)
   })
   .catch(err => {
     console.error('MongoDB connection error:', err);
-    console.error('Connection string used:', process.env.MONGODB_URI.replace(/:([^:@]{8})[^:@]*@/, ':****@'));
+    console.error(
+      'Connection string used:',
+      process.env.MONGODB_URI.replace(/:([^:@]{8})[^:@]*@/, ':****@')
+    );
     process.exit(1);
   });
 
@@ -96,7 +129,7 @@ app.use((req, res, next) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Express error:', err.stack);
-  
+
   // Handle different types of errors
   if (err.name === 'ValidationError') {
     return res.status(400).json({
@@ -105,14 +138,14 @@ app.use((err, req, res, next) => {
       details: err.errors
     });
   }
-  
+
   if (err.name === 'JsonWebTokenError') {
     return res.status(401).json({
       error: 'Invalid Token',
       message: 'Your session has expired. Please login again.'
     });
   }
-  
+
   // Default error response
   res.status(err.status || 500).json({
     error: err.name || 'Internal Server Error',
@@ -120,14 +153,6 @@ app.use((err, req, res, next) => {
     path: req.path
   });
 });
-
-// Verify required environment variables
-const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET'];
-const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
-if (missingEnvVars.length > 0) {
-  console.error('Missing required environment variables:', missingEnvVars);
-  process.exit(1);
-}
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
