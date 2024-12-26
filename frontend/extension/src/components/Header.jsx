@@ -1,13 +1,15 @@
 // Frontend/extension/src/components/Header.jsx
-import React from 'react';
+import React, { useContext } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigation } from '../contexts/NavigationContext';
 import SettingsMenu from './SettingsMenu';
 import { UserCircle, LogOut, Globe } from 'lucide-react';
+import { BalanceContext } from '../contexts/BalanceContext';
 
 const Header = ({ currentUrl }) => {
   const { user, logout, isAuthenticated } = useAuth();
   const { navigateTo } = useNavigation();
+  const { balance } = useContext(BalanceContext);
 
   const handleLogout = async () => {
     await logout();
@@ -64,13 +66,22 @@ const Header = ({ currentUrl }) => {
         </div>
       </div>
 
-      {/* URL subheader */}
+      {/* URL and balance subheader */}
       {currentUrl && (
-        <div className="mt-0.1 mb-0.1 flex items-center text-sm text-gray-500 dark:text-gray-400">
-          <Globe className="w-4 h-4 mr-1" />
-          <span className="truncate hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer">
-            {new URL(currentUrl).hostname}
-          </span>
+        <div className="mt-0.1 mb-0.1 flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
+          <div className="flex items-center">
+            <Globe className="w-4 h-4 mr-1" />
+            <span className="truncate hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer">
+              {new URL(currentUrl).hostname}
+            </span>
+          </div>
+          {isAuthenticated && (
+            <div className="flex items-center">
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                Balance: {parseFloat(balance).toFixed(4)} POL
+              </span>
+            </div>
+          )}
         </div>
       )}
     </div>

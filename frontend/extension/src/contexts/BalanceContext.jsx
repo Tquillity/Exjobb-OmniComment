@@ -10,10 +10,19 @@ export function BalanceProvider({ children }) {
   const { isAuthenticated, user } = useAuth();
 
   const fetchBalance = async () => {
+    if (!isAuthenticated || !user?.walletAddress) {
+      setBalance('0');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const response = await fetch('http://localhost:3000/api/blockchain/user-info', {
+      const result = await chrome.storage.local.get(['token']);
+      const token = result.token;
+      
+      const response = await fetch('http://localhost:3000/api/users/' + user.walletAddress, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
@@ -22,8 +31,9 @@ export function BalanceProvider({ children }) {
         throw new Error('Failed to fetch balance');
       }
 
-      const data = await response.json();
-      setBalance(data.depositBalance || '0');
+      const userData = await response.json();
+      setBalance(userData.depositBalance?.toString() || '0');
+      console.log('Fetched balance:', userData.depositBalance);
     } catch (error) {
       console.error('Error fetching balance:', error);
       setBalance('0');
@@ -33,22 +43,25 @@ export function BalanceProvider({ children }) {
   };
 
   const updateBalance = async () => {
-    if (isAuthenticated && user?.walletAddress) {
-      await fetchBalance();
-    }
+    await fetchBalance();
   };
 
   useEffect(() => {
-    if (isAuthenticated && user?.walletAddress) {
-      fetchBalance();
-    } else {
-      setBalance('0');
-      setLoading(false);
-    }
+    fetchBalance();
+    
+    // Set up periodic balance refresh
+    const interval = setInterval(fetchBalance, 30000); // Every 30 seconds
+    
+    // Cleanup interval on unmount
+    return () => clearInterval(interval);
   }, [isAuthenticated, user?.walletAddress]);
 
   return (
-    <BalanceContext.Provider value={{ balance, loading, updateBalance }}>
+    <BalanceContext.Provider value={{ 
+      balance, 
+      loading, 
+      updateBalance 
+    }}>
       {children}
     </BalanceContext.Provider>
   );

@@ -16,6 +16,39 @@ export default function EnhancedCommentBox({ onSubmit }) {
   const { preferences } = usePreferences();
   const { balance, updateBalance } = useContext(BalanceContext);
 
+  const checkCanComment = async () => {
+    try {
+      // Get token from chrome.storage instead of localStorage
+      const result = await chrome.storage.local.get(['token']);
+      const token = result.token;
+      console.log('Auth token being sent:', token ? 'Present' : 'Missing');
+  
+      const response = await fetch('http://localhost:3000/api/blockchain/can-comment', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+  
+      const data = await response.json();
+      console.log('Can comment response:', data);
+  
+      if (data.balance !== undefined) {
+        updateBalance();
+      }
+  
+      return data.canComment;
+    } catch (error) {
+      console.error('Error checking comment eligibility:', error);
+      return false;
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -40,14 +73,8 @@ export default function EnhancedCommentBox({ onSubmit }) {
       setIsSubmitting(true);
       
       // Verify balance on backend first
-      const verifyResponse = await fetch('http://localhost:3000/api/blockchain/can-comment', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
-      });
-      
-      const verifyData = await verifyResponse.json();
-      if (!verifyData.canComment) {
+      const canComment = await checkCanComment();
+      if (!canComment) {
         setError('You do not have sufficient balance to comment');
         return;
       }

@@ -19,14 +19,54 @@ router.get('/user-info', verifyToken, async (req, res) => {
 });
 
 // Check comment eligibility
-router.get('/can-comment', verifyToken, async (req, res) => {
+router.post('/can-comment', verifyToken, async (req, res) => {
   try {
-    const blockchainService = getBlockchainService();
-    const { walletAddress } = req.user;
-    const canComment = await blockchainService.canComment(walletAddress);
-    res.json({ canComment });
+    const walletAddress = req.user.walletAddress;
+    console.log('Processing can-comment request for wallet:', walletAddress);
+
+    const user = await User.findOne({ walletAddress });
+    if (!user) {
+      console.log('User not found:', walletAddress);
+      return res.status(404).json({ 
+        canComment: false, 
+        error: 'User not found',
+        walletAddress 
+      });
+    }
+
+    // Convert balance to number and ensure it's properly formatted
+    const userBalance = parseFloat(user.depositBalance);
+    const COMMENT_COST = 0.001;
+
+    console.log('Balance check:', {
+      walletAddress,
+      userBalance,
+      COMMENT_COST,
+      userBalanceType: typeof userBalance,
+      hasEnoughBalance: userBalance >= COMMENT_COST,
+      rawBalance: user.depositBalance
+    });
+
+    const canComment = userBalance >= COMMENT_COST;
+
+    res.json({
+      canComment,
+      balance: userBalance,
+      required: COMMENT_COST,
+      debug: {
+        walletAddress,
+        balanceType: typeof userBalance,
+        costType: typeof COMMENT_COST,
+        comparison: `${userBalance} >= ${COMMENT_COST}`
+      }
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Can-comment check error:', error);
+    res.status(500).json({
+      canComment: false,
+      error: error.message,
+      stack: error.stack
+    });
   }
 });
 
