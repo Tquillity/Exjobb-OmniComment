@@ -64,14 +64,6 @@ const userSchema = new mongoose.Schema({
     maxLength: 100,
     default: null
   },
-  subscription: {
-    type: {
-      type: String,
-      enum: ['none', 'basic', 'premium'],
-      default: 'none'
-    },
-    expiresAt: Date
-  },
   reputation: {
     type: Number,
     default: 0
@@ -121,7 +113,26 @@ const userSchema = new mongoose.Schema({
         default: 'relative'
       }
     }
-  }
+  },
+  depositBalance: {
+    type: Number,
+    default: 0
+  },
+  subscription: {
+    type: {
+      type: String,
+      enum: ['none', 'daily', 'monthly', 'yearly'],
+      default: 'none'
+    },
+    expiresAt: Date
+  },
+  dailyPasses: {
+    count: {
+      type: Number,
+      default: 0
+    },
+    expiresAt: Date
+  },
 }, {
   timestamps: true
 });
