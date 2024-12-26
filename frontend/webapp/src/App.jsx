@@ -9,6 +9,8 @@ import { Profile } from './pages/Profile';
 import { Subscription } from './pages/Subscription';
 import Comments from './pages/Comments';
 import { isAuthenticated } from './services/auth';
+import { fetchUserBalance } from './services/api';
+import { BalanceProvider } from './contexts/BalanceContext';
 
 export default function App() {
   const [isConnected, setIsConnected] = useState(false);
@@ -37,16 +39,22 @@ export default function App() {
           // Get stored user data
           const userData = JSON.parse(localStorage.getItem('userData'));
           if (userData) {
+            // Fetch current balance
+            const balanceResponse = await fetchUserBalance();
+            if (balanceResponse.success) {
+              userData.balance = balanceResponse.balance;
+            }
             setUser(userData);
             setIsConnected(true);
             return;
           }
         } catch (error) {
           console.error('Error parsing stored user data:', error);
+          // Handle error by maybe setting user to null or redirecting to login
+          handleDisconnect();
         }
       }
       
-      // If either authentication or wallet connection fails
       handleDisconnect();
     };
 
@@ -71,62 +79,82 @@ export default function App() {
     setUser(null);
   };
 
+  const handleBalanceUpdate = (newBalance) => {
+    if (user) {
+      setUser(prevUser => ({
+        ...prevUser,
+        balance: newBalance
+      }));
+      // Update localStorage as well
+      const storedUser = JSON.parse(localStorage.getItem('userData'));
+      if (storedUser) {
+        storedUser.balance = newBalance;
+        localStorage.setItem('userData', JSON.stringify(storedUser));
+      }
+    }
+  };
+
   return (
     <BrowserRouter>
-      <Routes>
-        <Route
-          element={
-            <Layout
-              isConnected={isConnected}
-              user={user}
-              onDisconnect={handleDisconnect}
+      <BalanceProvider>
+        <Routes>
+          <Route
+            element={
+              <Layout
+                isConnected={isConnected}
+                user={user}
+                onDisconnect={handleDisconnect}
+              />
+            }
+          >
+            <Route
+              path="/"
+              element={
+                isConnected && user ? (
+                  <Navigate to="/dashboard" replace />
+                ) : (
+                  <Home onConnect={handleConnect} />
+                )
+              }
             />
-          }
-        >
-          <Route
-            path="/"
-            element={
-              isConnected && user ? (
-                <Navigate to="/dashboard" replace />
-              ) : (
-                <Home onConnect={handleConnect} />
-              )
-            }
-          />
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute isConnected={isConnected}>
-                <Dashboard user={user} />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/comments"
-            element={
-              <ProtectedRoute isConnected={isConnected}>
-                <Comments user={user} />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute isConnected={isConnected}>
-                <Profile user={user} setUser={setUser} />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/subscription"
-            element={
-              <ProtectedRoute isConnected={isConnected}>
-                <Subscription user={user} />
-              </ProtectedRoute>
-            }
-          />
-        </Route>
-      </Routes>
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute isConnected={isConnected}>
+                  <Dashboard user={user} onBalanceUpdate={handleBalanceUpdate} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/comments"
+              element={
+                <ProtectedRoute isConnected={isConnected}>
+                  <Comments user={user} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute isConnected={isConnected}>
+                  <Profile user={user} setUser={setUser} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/subscription"
+              element={
+                <ProtectedRoute isConnected={isConnected}>
+                  <Subscription 
+                    user={user} 
+                    onBalanceUpdate={handleBalanceUpdate}
+                  />
+                </ProtectedRoute>
+              }
+            />
+          </Route>
+        </Routes>
+      </BalanceProvider>
     </BrowserRouter>
   );
 }

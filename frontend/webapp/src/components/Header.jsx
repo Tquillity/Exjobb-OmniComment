@@ -47,6 +47,11 @@ export default function Header({ user, onDisconnect }) {
               <span className="text-sm text-gray-600">
                 {user.username || shortenAddress(user.walletAddress)}
               </span>
+              {parseFloat(user.balance) > 0 && (
+                <span className="text-sm text-gray-600 border-l pl-4">
+                  Balance: {parseFloat(user.balance).toFixed(4)} POL
+                </span>
+              )}
               <button
                 onClick={onDisconnect}
                 className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"

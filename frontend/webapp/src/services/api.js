@@ -50,3 +50,30 @@ export async function postComment(url, content, signature) {
   if (!response.ok) throw new Error('Failed to post comment');
   return response.json();
 }
+
+export async function fetchUserBalance() {
+  try {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/blockchain/user-info`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch balance');
+    }
+
+    const data = await response.json();
+    return {
+      success: true,
+      balance: data.depositBalance || '0'
+    };
+  } catch (error) {
+    console.error('Error fetching balance:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}

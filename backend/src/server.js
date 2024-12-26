@@ -29,17 +29,28 @@ if (missingEnvVars.length > 0) {
   process.exit(1);
 }
 
-// Initiate Blockchain Service after dotenv is configured:
-let blockchainService;
-(async () => {
+// Create a singleton instance
+let blockchainServiceInstance = null;
+
+// Initialize blockchain service
+async function initializeBlockchainService() {
   try {
-    blockchainService = await BlockchainService.initialize();
+    blockchainServiceInstance = await BlockchainService.initialize();
     console.log('Blockchain service initialized!');
+    return blockchainServiceInstance;
   } catch (error) {
     console.error('Failed to initialize BlockchainService:', error);
     process.exit(1);
   }
-})();
+}
+
+// Export the instance getter
+export function getBlockchainService() {
+  if (!blockchainServiceInstance) {
+    throw new Error('BlockchainService not initialized');
+  }
+  return blockchainServiceInstance;
+}
 
 // MongoDB debugging
 mongoose.set('debug', true); // Enable mongoose debug mode
@@ -154,10 +165,20 @@ app.use((err, req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`API available at http://localhost:${PORT}/api`);
+// Initialize before starting server
+async function startServer() {
+  await initializeBlockchainService();
+  
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`API available at http://localhost:${PORT}/api`);
+  });
+}
+
+startServer().catch(error => {
+  console.error('Failed to start server:', error);
+  process.exit(1);
 });
 
 // Handle process termination
