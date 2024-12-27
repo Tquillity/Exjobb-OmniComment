@@ -37,7 +37,10 @@ const CommentBoard = () => {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/comments/trending`);
       if (!response.ok) throw new Error('Failed to fetch trending URLs');
       const data = await response.json();
-      setTrendingUrls(data);
+      setTrendingUrls(data.map(item => ({
+        ...item,
+        commentCount: item.count
+      })));
     } catch (err) {
       console.error(err);
     }
@@ -113,11 +116,12 @@ const CommentBoard = () => {
             </div>
             <div className="space-y-3">
               {trendingUrls.map((item, index) => (
-                <div key={index} className="flex items-start gap-2">
+                <div key={index} className="flex items-center gap-2">
                   <span className="text-gray-400 text-sm">{index + 1}</span>
                   <a href={item.url} className="text-sm text-gray-600 hover:text-gray-900 hover:underline truncate">
                     {item.url}
                   </a>
+                  <span className="text-xs text-gray-500">({item.commentCount} comments)</span>
                 </div>
               ))}
             </div>
