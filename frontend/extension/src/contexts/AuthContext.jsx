@@ -108,15 +108,19 @@ export function AuthProvider({ children }) {
 
   const updateBookmarks = async (commentId, action) => {
     try {
-      const updatedUser = await (action === 'add' 
-        ? bookmarkComment(commentId)
-        : unbookmarkComment(commentId));
-        
-      setUser(prev => ({
-        ...prev,
-        bookmarkedComments: updatedUser.bookmarkedComments
-      }));
-      
+      if (action === 'add') {
+        await bookmarkComment(commentId);
+        setUser(prev => ({
+          ...prev,
+          bookmarkedComments: [...(prev.bookmarkedComments || []), commentId]
+        }));
+      } else {
+        await unbookmarkComment(commentId);
+        setUser(prev => ({
+          ...prev,
+          bookmarkedComments: prev.bookmarkedComments.filter(id => id !== commentId)
+        }));
+      }
       return true;
     } catch (error) {
       console.error(`Error ${action}ing bookmark:`, error);

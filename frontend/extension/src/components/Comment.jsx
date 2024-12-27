@@ -15,6 +15,8 @@ const Comment = ({
   username,
   likes = [], 
   dislikes = [],
+  isBookmarked: initialIsBookmarked = false,
+  onBookmarkToggle,
   onLike,
   onDislike,
   onDelete,
@@ -23,7 +25,7 @@ const Comment = ({
   const { user, isAuthenticated } = useAuth();
   const { preferences } = usePreferences();
   const [isActionLoading, setIsActionLoading] = useState(false);
-  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(initialIsBookmarked);
   const [authorDisplayName, setAuthorDisplayName] = useState(
     username || `${walletAddress.substring(0, 6)}...${walletAddress.substring(38)}`
   );
@@ -32,10 +34,27 @@ const Comment = ({
   const hasLiked = likes.includes(user?.walletAddress);
   const hasDisliked = dislikes.includes(user?.walletAddress);
 
+  // Update local state when prop changes
+  useEffect(() => {
+    setIsBookmarked(initialIsBookmarked);
+  }, [initialIsBookmarked]);
+
+  // Check bookmark status on mount and when user changes
+  useEffect(() => {
+    const checkBookmarkStatus = async () => {
+      if (isAuthenticated && user?.bookmarkedComments) {
+        const bookmarked = user.bookmarkedComments.some(
+          bookmark => bookmark._id === commentId || bookmark === commentId
+        );
+        setIsBookmarked(bookmarked);
+      }
+    };
+    checkBookmarkStatus();
+  }, [isAuthenticated, user, commentId]);
+
   // Fetch author's display preferences with debounce
   const fetchAuthorPreferences = useCallback(async () => {
     try {
-      console.log('Fetching preferences for wallet:', walletAddress);
       const token = await chrome.storage.local.get(['token']).then(result => result.token);
       const response = await fetch(`http://localhost:3000/api/users/${walletAddress}`, {
         headers: {
@@ -46,13 +65,10 @@ const Comment = ({
       if (!response.ok) throw new Error('Failed to fetch user preferences');
       
       const authorData = await response.json();
-      console.log('Received author data:', authorData);
       
       if (authorData.displayPreference === 'username' && authorData.username) {
-        console.log('Setting display name to username:', authorData.username);
         setAuthorDisplayName(authorData.username);
       } else {
-        console.log('Setting display name to wallet address');
         setAuthorDisplayName(`${walletAddress.substring(0, 6)}...${walletAddress.substring(38)}`);
       }
     } catch (error) {
@@ -64,21 +80,10 @@ const Comment = ({
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchAuthorPreferences();
-    }, 500); // Add 500ms delay
+    }, 500);
 
     return () => clearTimeout(timer);
   }, [fetchAuthorPreferences]);
-
-  // Check if comment is bookmarked
-  useEffect(() => {
-    const checkBookmarkStatus = async () => {
-      if (isAuthenticated && user?.bookmarkedComments) {
-        const isBookmarked = user.bookmarkedComments.some(bookmark => bookmark._id === commentId);
-        setIsBookmarked(isBookmarked);
-      }
-    };
-    checkBookmarkStatus();
-  }, [isAuthenticated, user, commentId]);
 
   const handleLike = async () => {
     if (!isAuthenticated || isActionLoading) return;
@@ -145,8 +150,13 @@ const Comment = ({
         await bookmarkComment(commentId);
       }
       setIsBookmarked(!isBookmarked);
+      if (onBookmarkToggle) {
+        onBookmarkToggle(!isBookmarked);
+      }
     } catch (error) {
       console.error('Error toggling bookmark:', error);
+      // Revert local state on error
+      setIsBookmarked(isBookmarked);
     } finally {
       setIsActionLoading(false);
     }

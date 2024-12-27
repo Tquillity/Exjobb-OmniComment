@@ -149,6 +149,9 @@ function AppContent() {
                           username={comment.username}
                           likes={comment.likes}
                           dislikes={comment.dislikes}
+                          isBookmarked={user?.bookmarkedComments?.some(
+                            bookmark => bookmark._id === comment._id || bookmark === comment._id
+                          )}
                         />
                       </div>
                     ))

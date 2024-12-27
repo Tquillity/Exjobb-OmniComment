@@ -126,9 +126,18 @@ const Bookmarks = () => {
                   likes={comment.likes}
                   dislikes={comment.dislikes}
                   isBookmarked={true}
-                  onBookmarkToggle={() => handleUnbookmark(comment._id)}
+                  onBookmarkToggle={async (newBookmarkState) => {
+                    try {
+                      await unbookmarkComment(comment._id);
+                      setBookmarkedComments(prev =>
+                        prev.filter(c => c._id !== comment._id)
+                      );
+                    } catch (error) {
+                      console.error('Error toggling bookmark:', error);
+                    }
+                  }}
                 />
-                <a 
+                <a
                   href={comment.url}
                   target="_blank"
                   rel="noopener noreferrer"
