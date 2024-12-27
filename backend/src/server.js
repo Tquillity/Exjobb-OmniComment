@@ -10,7 +10,7 @@ import routes from './routes/index.js';
 dotenv.config();
 
 // MongoDB debugging
-mongoose.set('debug', true); // Enable mongoose debug mode
+mongoose.set('debug', false); // ! true = Enable or dissable mongoose debug mode
 
 // Create the Express app
 const app = express();

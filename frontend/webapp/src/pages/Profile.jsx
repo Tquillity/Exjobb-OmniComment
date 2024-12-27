@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Loading from '../components/Loading';
 import UserCommentBoard from '../components/CommentBoardUser';
 
-export function Profile({ account }) {
+export function Profile({ user }) {
   const [userData, setUserData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -16,16 +16,18 @@ export function Profile({ account }) {
 
   useEffect(() => {
     fetchUserData();
-  }, [account]);
+  }, [user]);
 
   const fetchUserData = async () => {
-    if (!account) {
+    if (!user?.walletAddress) {
       setIsLoading(false);
       return;
     }
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/users/${account}`);
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/users/${user.walletAddress}`
+      );
       if (!response.ok) {
         throw new Error('Failed to fetch user data');
       }
@@ -46,13 +48,16 @@ export function Profile({ account }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/users/${account}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/users/${user.walletAddress}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        }
+      );
 
       if (!response.ok) {
         throw new Error('Failed to update profile');
@@ -69,17 +74,21 @@ export function Profile({ account }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: value
     }));
   };
 
-  if (!account) return (
-    <div className="bg-white shadow rounded-lg p-6">
-      <p className="text-gray-500">Please connect your wallet to view your profile.</p>
-    </div>
-  );
+  if (!user?.walletAddress) {
+    return (
+      <div className="bg-white shadow rounded-lg p-6">
+        <p className="text-gray-500">
+          Please connect your wallet to view your profile.
+        </p>
+      </div>
+    );
+  }
 
   if (isLoading) return <Loading message="Loading profile..." />;
 
@@ -108,7 +117,9 @@ export function Profile({ account }) {
         {isEditing ? (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">Username</label>
+              <label className="block text-sm font-medium text-gray-700">
+                Username
+              </label>
               <input
                 type="text"
                 name="username"
@@ -119,7 +130,9 @@ export function Profile({ account }) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">Age</label>
+              <label className="block text-sm font-medium text-gray-700">
+                Age
+              </label>
               <input
                 type="number"
                 name="age"
@@ -132,7 +145,9 @@ export function Profile({ account }) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">Nationality</label>
+              <label className="block text-sm font-medium text-gray-700">
+                Nationality
+              </label>
               <input
                 type="text"
                 name="nationality"
@@ -161,47 +176,69 @@ export function Profile({ account }) {
         ) : (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">Connected Address</label>
-              <p className="mt-1 text-sm text-gray-500">{account}</p>
+              <label className="block text-sm font-medium text-gray-700">
+                Connected Address
+              </label>
+              <p className="mt-1 text-sm text-gray-500">{user.walletAddress}</p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">Username</label>
-              <p className="mt-1 text-sm text-gray-500">{userData?.username || 'Not set'}</p>
+              <label className="block text-sm font-medium text-gray-700">
+                Username
+              </label>
+              <p className="mt-1 text-sm text-gray-500">
+                {userData?.username || 'Not set'}
+              </p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">Age</label>
-              <p className="mt-1 text-sm text-gray-500">{userData?.age || 'Not set'}</p>
+              <label className="block text-sm font-medium text-gray-700">
+                Age
+              </label>
+              <p className="mt-1 text-sm text-gray-500">
+                {userData?.age || 'Not set'}
+              </p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">Nationality</label>
-              <p className="mt-1 text-sm text-gray-500">{userData?.nationality || 'Not set'}</p>
+              <label className="block text-sm font-medium text-gray-700">
+                Nationality
+              </label>
+              <p className="mt-1 text-sm text-gray-500">
+                {userData?.nationality || 'Not set'}
+              </p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">Subscription Status</label>
+              <label className="block text-sm font-medium text-gray-700">
+                Subscription Status
+              </label>
               <p className="mt-1 text-sm text-gray-500">
                 {userData?.subscription?.type || 'None'}
                 {userData?.subscription?.expiresAt && (
                   <span className="ml-2 text-gray-400">
-                    (Expires: {new Date(userData.subscription.expiresAt).toLocaleDateString()})
+                    (Expires:{' '}
+                    {new Date(userData.subscription.expiresAt).toLocaleDateString()}
+                    )
                   </span>
                 )}
               </p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">Reputation Score</label>
-              <p className="mt-1 text-sm text-gray-500">{userData?.reputation || 0}</p>
+              <label className="block text-sm font-medium text-gray-700">
+                Reputation Score
+              </label>
+              <p className="mt-1 text-sm text-gray-500">
+                {userData?.reputation || 0}
+              </p>
             </div>
           </div>
         )}
       </div>
 
       {/* User Comment Board Section */}
-      <UserCommentBoard account={account} />
+      <UserCommentBoard account={user.walletAddress} />
     </div>
   );
 }

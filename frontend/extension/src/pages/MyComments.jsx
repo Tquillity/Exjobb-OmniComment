@@ -193,6 +193,7 @@ const MyComments = () => {
             {comments.map((comment) => (
               <div key={comment._id} className="relative group">
                 <Comment
+                  commentId={comment._id}
                   content={comment.content}
                   timestamp={comment.createdAt}
                   walletAddress={comment.walletAddress}

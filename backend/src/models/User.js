@@ -76,6 +76,10 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  bookmarkedComments: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Comment'
+  }],
   settings: {
     theme: {
       type: String,

@@ -13,6 +13,7 @@ import About from './pages/About';
 import MyComments from './pages/MyComments';
 import Statistics from './pages/Statistics';
 import Comment from './components/Comment';
+import Bookmarks from './pages/Bookmarks';
 
 function AppContent() {
   const { currentPage } = useNavigation();
@@ -94,6 +95,8 @@ function AppContent() {
         return <MyComments />;
       case 'statistics':
         return <Statistics />;
+      case 'bookmarks':
+        return <Bookmarks />;
       case 'login':
         return <Login onSuccess={() => {/* Handle successful login */}} />;
       case 'main':
@@ -139,6 +142,7 @@ function AppContent() {
                     comments.map((comment) => (
                       <div key={comment._id} className="p-3 bg-white dark:bg-gray-800 rounded shadow">
                         <Comment 
+                          commentId={comment._id}
                           content={comment.content}
                           timestamp={comment.createdAt}
                           walletAddress={comment.walletAddress}
