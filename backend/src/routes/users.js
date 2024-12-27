@@ -2,6 +2,7 @@
 import { Router } from 'express';
 import { body, validationResult } from 'express-validator';
 import User from '../models/User.js';
+import { verifyToken } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -42,6 +43,20 @@ router.post('/register', [
     res.json(user);
   } catch (error) {
     console.error('Registration error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get('/bookmarks', verifyToken, async (req, res) => {
+  try {
+    const user = await User.findOne({ walletAddress: req.user.walletAddress })
+      .populate('bookmarkedComments');
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json(user.bookmarkedComments);
+  } catch (error) {
+    console.error('Fetching bookmarks error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -132,6 +147,62 @@ router.put('/:walletAddress/settings', async (req, res) => {
     res.json({ settings: user.settings });
   } catch (error) {
     console.error('Settings update error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Toggle/Set bookmark
+router.post('/bookmark', verifyToken, async (req, res) => {
+  try {
+    const { commentId } = req.body;
+    if (!commentId) {
+      return res.status(400).json({ error: 'commentId is required' });
+    }
+
+    // Grab user from req.user (already populated by verifyToken)
+    const user = await User.findOne({ walletAddress: req.user.walletAddress });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Check if this is already bookmarked
+    const isBookmarked = user.bookmarkedComments.some(
+      (bookmarkId) => bookmarkId.toString() === commentId
+    );
+
+    if (!isBookmarked) {
+      user.bookmarkedComments.push(commentId);
+      await user.save();
+    }
+
+    return res.json({ message: 'Comment bookmarked successfully' });
+  } catch (error) {
+    console.error('Bookmark error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Remove bookmark
+router.post('/unbookmark', verifyToken, async (req, res) => {
+  try {
+    const { commentId } = req.body;
+    if (!commentId) {
+      return res.status(400).json({ error: 'commentId is required' });
+    }
+
+    const user = await User.findOne({ walletAddress: req.user.walletAddress });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    user.bookmarkedComments = user.bookmarkedComments.filter(
+      (bm) => bm.toString() !== commentId
+    );
+    await user.save();
+
+    return res.json({ message: 'Comment unbookmarked successfully' });
+  } catch (error) {
+    console.error('Unbookmark error:', error);
     res.status(500).json({ error: error.message });
   }
 });

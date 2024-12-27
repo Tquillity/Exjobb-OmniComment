@@ -147,3 +147,29 @@ export const updateDisplayPreference = async (preference) => {
     throw error;
   }
 };
+
+export const bookmarkComment = async (commentId) => {
+  if (!commentId) {
+    throw new Error('commentId is required');
+  }
+  return authenticatedRequest('/users/bookmark', {
+    method: 'POST',
+    body: JSON.stringify({ commentId })
+  });
+};
+
+export const unbookmarkComment = async (commentId) => {
+  if (!commentId) {
+    throw new Error('commentId is required');
+  }
+  return authenticatedRequest('/users/unbookmark', {
+    method: 'POST',
+    body: JSON.stringify({ commentId })
+  });
+};
+
+export const fetchBookmarks = async () => {
+  return authenticatedRequest('/users/bookmarks', {
+    method: 'GET'
+  });
+};
