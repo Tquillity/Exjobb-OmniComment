@@ -106,6 +106,24 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const updateBookmarks = async (commentId, action) => {
+    try {
+      const updatedUser = await (action === 'add' 
+        ? bookmarkComment(commentId)
+        : unbookmarkComment(commentId));
+        
+      setUser(prev => ({
+        ...prev,
+        bookmarkedComments: updatedUser.bookmarkedComments
+      }));
+      
+      return true;
+    } catch (error) {
+      console.error(`Error ${action}ing bookmark:`, error);
+      throw error;
+    }
+  };
+
   return (
     <AuthContext.Provider value={{
       user,

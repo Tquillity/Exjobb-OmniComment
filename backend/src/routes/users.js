@@ -50,11 +50,17 @@ router.post('/register', [
 router.get('/bookmarks', verifyToken, async (req, res) => {
   try {
     const user = await User.findOne({ walletAddress: req.user.walletAddress })
-      .populate('bookmarkedComments');
+      .populate({
+        path: 'bookmarkedComments',
+        select: '-__v',
+        match: { isDeleted: false }
+      });
+      
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-    res.json(user.bookmarkedComments);
+    
+    res.json(user.bookmarkedComments || []);
   } catch (error) {
     console.error('Fetching bookmarks error:', error);
     res.status(500).json({ error: error.message });

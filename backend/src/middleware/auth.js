@@ -6,7 +6,7 @@ import User from '../models/User.js';
 // Rate limiting for auth attempts
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 attempts per window per IP
+  max: 500, // 5 attempts per window per IP
   message: { error: 'Too many login attempts, please try again later.' }
 });
 

@@ -173,3 +173,10 @@ export const fetchBookmarks = async () => {
     method: 'GET'
   });
 };
+
+export const toggleBookmark = async (commentId, action) => {
+  return authenticatedRequest(`/users/${action === 'add' ? 'bookmark' : 'unbookmark'}`, {
+    method: 'POST',
+    body: JSON.stringify({ commentId })
+  });
+};

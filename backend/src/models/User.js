@@ -166,7 +166,13 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
 userSchema.methods.toSafeObject = function() {
   const obj = this.toObject();
   delete obj.password;
+  // Ensure bookmarkedComments is populated
+  if (this.bookmarkedComments) {
+    obj.bookmarkedComments = this.bookmarkedComments;
+  }
   return obj;
 };
+
+
 
 export default mongoose.model('User', userSchema);

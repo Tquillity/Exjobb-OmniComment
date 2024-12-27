@@ -4,6 +4,7 @@ import { ChevronLeft, X, RefreshCw } from 'lucide-react';
 import Comment from '../components/Comment';
 import { useNavigation } from '../contexts/NavigationContext';
 import { useAuth } from '../contexts/AuthContext';
+import { fetchBookmarks, unbookmarkComment } from '../services/api';
 
 const Bookmarks = () => {
   const { goBack, closeAll } = useNavigation();
@@ -13,33 +14,20 @@ const Bookmarks = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
 
-  // Fetch the bookmarked comments
-  const fetchBookmarks = async () => {
+  const loadBookmarks = async () => {
     if (!isAuthenticated || !user?.walletAddress) {
       setError('Please login to view bookmarked comments.');
       setLoading(false);
       return;
     }
-  
+
     try {
       setError(null);
-      const token = await chrome.storage.local.get(['token']).then(resp => resp.token);
-      
-      const response = await fetch(`http://localhost:3000/api/users/bookmarks`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-  
-      if (!response.ok) {
-        throw new Error('Failed to fetch bookmarks');
-      }
-  
-      const data = await response.json();
+      const data = await fetchBookmarks();
       setBookmarkedComments(data);
     } catch (err) {
       console.error('Error fetching bookmarked comments:', err);
-      setError(err.message);
+      setError(err.message || 'Failed to fetch bookmarks');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -47,46 +35,33 @@ const Bookmarks = () => {
   };
 
   useEffect(() => {
-    fetchBookmarks();
+    loadBookmarks();
   }, [isAuthenticated, user?.walletAddress]);
 
-  // Optional function to unbookmark
   const handleUnbookmark = async (commentId) => {
     try {
-      const token = await chrome.storage.local.get(['token']).then(resp => resp.token);
-      const response = await fetch('http://localhost:3000/api/users/unbookmark', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ commentId })
-      });
-  
-      if (!response.ok) {
-        throw new Error('Failed to unbookmark');
-      }
-  
-      setBookmarkedComments(prev => prev.filter(b => b._id !== commentId));
+      await unbookmarkComment(commentId);
+      setBookmarkedComments(prev => prev.filter(comment => comment._id !== commentId));
     } catch (error) {
-      console.error('Error unbookmarking comment:', error);
+      console.error('Error removing bookmark:', error);
+      // Optionally show error to user
     }
   };
 
   const handleRefresh = () => {
     setRefreshing(true);
-    fetchBookmarks();
+    loadBookmarks();
   };
 
   if (!isAuthenticated) {
     return (
       <div className="h-full flex flex-col">
         <div className="px-4 py-3 border-b flex items-center justify-between">
-          <button onClick={goBack} className="p-1 hover:bg-gray-100 rounded-full">
+          <button onClick={goBack} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full">
             <ChevronLeft className="h-5 w-5" />
           </button>
           <span className="font-semibold">Bookmarked Comments</span>
-          <button onClick={closeAll} className="p-1 hover:bg-gray-100 rounded-full">
+          <button onClick={closeAll} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -124,7 +99,7 @@ const Bookmarks = () => {
         </button>
       </div>
 
-      {/* Bookmarked Comments List */}
+      {/* Content */}
       <div className="flex-1 overflow-y-auto p-4">
         {loading ? (
           <div className="flex items-center justify-center h-full">
@@ -142,7 +117,6 @@ const Bookmarks = () => {
           <div className="space-y-4">
             {bookmarkedComments.map((comment) => (
               <div key={comment._id} className="relative group">
-                {/* Reuse the existing <Comment> component */}
                 <Comment
                   commentId={comment._id}
                   content={comment.content}
@@ -151,16 +125,9 @@ const Bookmarks = () => {
                   username={comment.username}
                   likes={comment.likes}
                   dislikes={comment.dislikes}
+                  isBookmarked={true}
+                  onBookmarkToggle={() => handleUnbookmark(comment._id)}
                 />
-                <button
-                  onClick={() => handleUnbookmark(comment._id)}
-                  className="
-                    mt-1 text-sm text-blue-600 dark:text-blue-400 hover:underline 
-                    focus:outline-none
-                  "
-                >
-                  Remove Bookmark
-                </button>
                 <a 
                   href={comment.url}
                   target="_blank"
