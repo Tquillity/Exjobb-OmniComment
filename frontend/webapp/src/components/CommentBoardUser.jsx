@@ -1,7 +1,7 @@
 // Frontend/webapp/src/components/CommentBoardUser.jsx
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
-import { MessageSquare, ThumbsUp, Bookmark } from 'lucide-react';
+import { MessageSquare, ThumbsUp, Bookmark, Search } from 'lucide-react';
 import Loading from './Loading';
 import AdvancedFilterPanel from './AdvancedFilterPanel';
 
@@ -12,12 +12,24 @@ const UserCommentBoard = ({ account }) => {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('created');
   const [activeFilters, setActiveFilters] = useState({});
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     if (account) {
       fetchUserComments(activeTab);
     }
   }, [account, activeTab]);
+
+  useEffect(() => {
+    let filtered = [...comments];
+    if (searchTerm && searchTerm.trim() !== '') {
+      filtered = filtered.filter(comment => 
+        comment.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        comment.url.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    setFilteredComments(filtered);
+  }, [searchTerm, comments]);
 
   const fetchUserComments = async (type) => {
     try {
@@ -39,13 +51,6 @@ const UserCommentBoard = ({ account }) => {
   const handleFilterChange = (filters) => {
     let filtered = [...comments];
     
-    if (filters.searchTerm) {
-      filtered = filtered.filter(comment => 
-        comment.content.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
-        comment.url.toLowerCase().includes(filters.searchTerm.toLowerCase())
-      );
-    }
-
     if (filters.dateRange !== 'all') {
       const now = new Date();
       const filterDate = new Date();
@@ -95,8 +100,13 @@ const UserCommentBoard = ({ account }) => {
         break;
     }
 
+    const activeFiltersCopy = { ...filters };
+    if (!activeFiltersCopy.searchTerm?.trim()) {
+      delete activeFiltersCopy.searchTerm;
+    }
+
     setFilteredComments(filtered);
-    setActiveFilters(filters);
+    setActiveFilters(activeFiltersCopy);
   };
 
   if (!account) return null;
@@ -109,6 +119,20 @@ const UserCommentBoard = ({ account }) => {
       <h2 className="text-xl font-semibold p-4 border-b border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
         My Comments
       </h2>
+
+      {/* Search Bar */}
+      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search comments..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
+          />
+          <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+        </div>
+      </div>
 
       <AdvancedFilterPanel
         onFilterChange={handleFilterChange}

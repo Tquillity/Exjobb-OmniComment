@@ -46,7 +46,7 @@ export default function AdvancedFilterPanel({
               <select
                 value={filters.dateRange}
                 onChange={(e) => handleFilterChange('dateRange', e.target.value)}
-                className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 [&>option]:dark:text-gray-200 [&>option]:dark:bg-gray-700"
               >
                 <option value="all">All Time</option>
                 <option value="today">Today</option>
@@ -64,7 +64,7 @@ export default function AdvancedFilterPanel({
               <select
                 value={filters.sortBy}
                 onChange={(e) => handleFilterChange('sortBy', e.target.value)}
-                className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 [&>option]:dark:text-gray-200 [&>option]:dark:bg-gray-700"
               >
                 <option value="newest">Newest First</option>
                 <option value="oldest">Oldest First</option>
