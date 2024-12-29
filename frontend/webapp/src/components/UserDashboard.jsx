@@ -92,45 +92,44 @@ export default function UserDashboard({ user }) {
   };
 
   return (
-    <div className="bg-white shadow rounded-lg p-6">
-      <h2 className="text-2xl font-bold text-gray-900 mb-4">Your Dashboard</h2>
+    <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Your Dashboard</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        
-        {/* COMMENTS MADE SECTION */}
-        <div className="bg-indigo-50 p-4 rounded-lg">
-          <h3 className="text-lg font-medium text-indigo-900">
+        {/* Comments Made Card */}
+        <div className="bg-indigo-50 dark:bg-indigo-900/30 p-4 rounded-lg">
+          <h3 className="text-lg font-medium text-indigo-900 dark:text-indigo-100">
             Comments Made
           </h3>
-          <p className="text-3xl font-bold text-indigo-600">
+          <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">
             {userComments.length}
           </p>
         </div>
 
-        {/* BALANCE SECTION */}
-        <div className="bg-green-50 p-4 rounded-lg">
-          <h3 className="text-lg font-medium text-green-900">Balance</h3>
+        {/* Balance Card */}
+        <div className="bg-green-50 dark:bg-green-900/30 p-4 rounded-lg">
+          <h3 className="text-lg font-medium text-green-900 dark:text-green-100">Balance</h3>
           {isLoading ? (
-            <div className="animate-pulse h-9 bg-green-100 rounded w-24 mt-1"></div>
+            <div className="animate-pulse h-9 bg-green-100 dark:bg-green-800 rounded w-24 mt-1"></div>
           ) : error ? (
-            <p className="text-sm text-red-600">{error}</p>
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
           ) : (
             <div>
-              <p className="text-3xl font-bold text-green-600">
+              <p className="text-3xl font-bold text-green-600 dark:text-green-400">
                 {balance} POL
               </p>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 Account: {user?.username || user?.walletAddress}
               </p>
             </div>
           )}
         </div>
 
-        {/* SUBSCRIPTION SECTION */}
-        <div className="bg-purple-50 p-4 rounded-lg">
-          <h3 className="text-lg font-medium text-purple-900">
+        {/* Subscription Card */}
+        <div className="bg-purple-50 dark:bg-purple-900/30 p-4 rounded-lg">
+          <h3 className="text-lg font-medium text-purple-900 dark:text-purple-100">
             Subscription
           </h3>
-          <p className="text-3xl font-bold text-purple-600">
+          <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">
             Inactive
           </p>
         </div>

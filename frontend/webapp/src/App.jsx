@@ -15,6 +15,15 @@ export default function App() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
+    // Initialize dark mode from localStorage or system preference
+    const isDark = localStorage.getItem('darkMode') === 'true' ||
+    (!localStorage.getItem('darkMode') && 
+    window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+    if (isDark) {
+    document.documentElement.classList.add('dark');
+    }
+
     async function checkWalletConnection() {
       if (window.ethereum) {
         try {
