@@ -1,15 +1,64 @@
 // Frontend/extension/src/components/AppearanceSettings.jsx
 import React from 'react';
 import { useTheme } from '../contexts/ThemeContexts';
+import { Info } from 'lucide-react';
 
 const AppearanceSettings = () => {
   const { theme, setThemePreference } = useTheme();
   const [fontSize, setFontSize] = React.useState('medium');
   const [commentDisplay, setCommentDisplay] = React.useState('sidebar');
   const [density, setDensity] = React.useState('comfortable');
+  const [notificationMode, setNotificationMode] = React.useState('notify');
+
+  // Tooltip content for notification modes
+  const notificationTooltips = {
+    silent: "The extension makes no noise, you have to actively look for comments.",
+    notify: "The extension shows notification in the extensions pane if the URL is commented.",
+    popup: "The extension opens up and shows the comments if the URL is commented.",
+    bottomBar: "The extension opens up and show the comments in a bottom of the screen Bar."
+  };
 
   return (
     <div className="p-4 space-y-6">
+      {/* Notification Mode Selection */}
+      <div className="space-y-2">
+        <label className="block text-sm font-medium">Comment Notification Mode</label>
+        <div className="space-y-2">
+          {[
+            { value: 'silent', label: 'Silent' },
+            { value: 'notify', label: 'Notify' },
+            { value: 'popup', label: 'PopUp' },
+            { value: 'bottomBar', label: 'Bottom Bar' }
+          ].map((option) => (
+            <div key={option.value} className="flex items-center space-x-2">
+              <input
+                type="radio"
+                id={option.value}
+                name="notificationMode"
+                value={option.value}
+                checked={notificationMode === option.value}
+                onChange={(e) => setNotificationMode(e.target.value)}
+                className="text-blue-600 focus:ring-blue-500"
+              />
+              <label htmlFor={option.value} className="flex items-center">
+                <span>{option.label}</span>
+                <div className="relative group ml-2">
+                  <Info className="h-4 w-4 text-gray-400 cursor-help" />
+                  <div className="fixed left-32 top-1/4 transform -translate-y-1/4 
+                                w-64 p-3 bg-gray-900 text-white text-sm rounded-lg
+                                border border-gray-600 dark:border-gray-500
+                                opacity-0 invisible group-hover:opacity-100 group-hover:visible 
+                                transition-all duration-200 z-50">
+                    {notificationTooltips[option.value]}
+                    <div className="absolute top-1/2 -left-2 transform -translate-y-1/2
+                                  border-8 border-transparent border-r-gray-900"></div>
+                  </div>
+                </div>
+              </label>
+            </div>
+          ))}
+        </div>
+      </div>
       {/* Theme Selection */}
       <div className="space-y-2">
         <label className="block text-sm font-medium">Theme</label>

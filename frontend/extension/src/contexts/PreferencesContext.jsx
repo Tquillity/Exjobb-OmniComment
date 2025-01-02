@@ -8,6 +8,7 @@ const PreferencesContext = createContext();
 const defaultPreferences = {
   theme: 'system',
   commentPopup: 'sidebar',
+  notificationMode: 'notify',
   comments: {
     sortOrder: 'newest',
     threadDepth: 5,

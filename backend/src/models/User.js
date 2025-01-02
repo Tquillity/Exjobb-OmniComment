@@ -86,6 +86,11 @@ const userSchema = new mongoose.Schema({
       enum: ['light', 'dark', 'system'],
       default: 'system'
     },
+    notificationMode: {
+      type: String,
+      enum: ['silent', 'notify', 'popup', 'bottomBar'],
+      default: 'silent'
+    },
     commentPopup: {
       type: String,
       enum: ['sidebar', 'overlay', 'minimal'],
