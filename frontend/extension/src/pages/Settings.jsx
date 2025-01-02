@@ -23,6 +23,16 @@ const Settings = () => {
     }
   };
 
+  const handleBack = () => {
+    if (activeCategory) {
+      // If we're in a category, go back to main settings
+      navigateTo('settings');
+    } else {
+      // If we're in main settings, go back to previous screen
+      goBack();
+    }
+  };
+
   const handleCategoryClick = (category) => {
     navigateTo('settings', { category });
   };
@@ -32,7 +42,7 @@ const Settings = () => {
       {/* Header */}
       <div className="px-4 py-3 border-b dark:border-gray-700 flex items-center justify-between">
         <button 
-          onClick={goBack}
+          onClick={handleBack}
           className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full"
         >
           <ChevronLeft className="h-5 w-5" />
@@ -56,14 +66,6 @@ const Settings = () => {
           <div className="p-4 space-y-2">
             {/* Settings Categories */}
             <button
-              onClick={() => handleCategoryClick('appearance')}
-              className="w-full p-3 flex items-center space-x-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            >
-              <span className="text-xl">🎨</span>
-              <span>Appearance</span>
-            </button>
-
-            <button
               onClick={() => handleCategoryClick('profile')}
               className="w-full p-3 flex items-center space-x-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             >
@@ -76,39 +78,15 @@ const Settings = () => {
               className="w-full p-3 flex items-center space-x-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             >
               <span className="text-xl">💭</span>
-              <span>Comment Preferences</span>
+              <span>Comment Settings</span>
             </button>
 
             <button
-              onClick={() => handleCategoryClick('notifications')}
+              onClick={() => handleCategoryClick('appearance')}
               className="w-full p-3 flex items-center space-x-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             >
-              <span className="text-xl">🔔</span>
-              <span>Notifications</span>
-            </button>
-
-            <button
-              onClick={() => handleCategoryClick('privacy')}
-              className="w-full p-3 flex items-center space-x-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            >
-              <span className="text-xl">🔒</span>
-              <span>Privacy & Security</span>
-            </button>
-
-            <button
-              onClick={() => handleCategoryClick('wallet')}
-              className="w-full p-3 flex items-center space-x-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            >
-              <span className="text-xl">👛</span>
-              <span>Wallet Settings</span>
-            </button>
-
-            <button
-              onClick={() => handleCategoryClick('language')}
-              className="w-full p-3 flex items-center space-x-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            >
-              <span className="text-xl">🌍</span>
-              <span>Language & Region</span>
+              <span className="text-xl">🎨</span>
+              <span>Extension Settings</span>
             </button>
           </div>
         )}

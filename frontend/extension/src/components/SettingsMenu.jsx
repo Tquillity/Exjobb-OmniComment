@@ -3,9 +3,8 @@ import React from 'react';
 import { Menu } from '@headlessui/react';
 import { 
   Settings, Info, Monitor, 
-  BarChart2, CreditCard, MessageSquare, 
-  AlertCircle, Download, Bookmark,
-  User, Shield, Palette
+  MessageSquare, Bookmark,
+  User, Palette
 } from 'lucide-react';
 import { useNavigation } from '../contexts/NavigationContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -16,12 +15,6 @@ const SettingsMenu = () => {
   
   // Base menu items (always available)
   const publicMenuItems = [
-    {
-      icon: Palette,
-      label: 'Appearance',
-      action: () => navigateTo('settings', { category: 'appearance' }),
-      className: 'text-gray-700 dark:text-gray-200'
-    },
     {
       icon: Info,
       label: 'About',
@@ -45,51 +38,15 @@ const SettingsMenu = () => {
       className: 'text-gray-700 dark:text-gray-200'
     },
     {
-      icon: User,
-      label: 'Profile Settings',
-      action: () => navigateTo('settings', { category: 'profile' }),
-      className: 'text-gray-700 dark:text-gray-200'
-    },
-    {
-      icon: MessageSquare,
-      label: 'Comment Preferences',
-      action: () => navigateTo('settings', { category: 'comments' }),
-      className: 'text-gray-700 dark:text-gray-200'
-    },
-    {
-      icon: Shield,
-      label: 'Privacy & Security',
-      action: () => navigateTo('settings', { category: 'privacy' }),
-      className: 'text-gray-700 dark:text-gray-200'
-    },
-    {
-      icon: BarChart2,
-      label: 'Statistics',
-      action: () => navigateTo('statistics'),
-      className: 'text-gray-700 dark:text-gray-200'
-    },
-    {
-      icon: CreditCard,
-      label: 'Manage Subscription',
-      action: () => navigateTo('subscription'),
+      icon: Settings,
+      label: 'Settings',
+      action: () => navigateTo('settings'),
       className: 'text-gray-700 dark:text-gray-200'
     },
     {
       icon: Bookmark,
       label: 'Bookmarked Pages',
       action: () => navigateTo('bookmarks'),
-      className: 'text-gray-700 dark:text-gray-200'
-    },
-    {
-      icon: Download,
-      label: 'Export Data',
-      action: () => navigateTo('export'),
-      className: 'text-gray-700 dark:text-gray-200'
-    },
-    {
-      icon: AlertCircle,
-      label: 'Report Issues',
-      action: () => navigateTo('report'),
       className: 'text-gray-700 dark:text-gray-200'
     }
   ];
