@@ -1,9 +1,10 @@
 // Frontend/webapp/src/components/CommentBoard.jsx
 import React, { useState, useEffect } from 'react';
 import { formatDistance } from 'date-fns';
-import { Search, TrendingUp } from 'lucide-react';
+import { Search, TrendingUp, Bookmark } from 'lucide-react';
 import Loading from './Loading';
 import AdvancedFilterPanel from './AdvancedFilterPanel';
+import { bookmarkComment, unbookmarkComment, getBookmarkedComments } from '../services/bookmarks';
 
 const CommentBoard = () => {
   const [comments, setComments] = useState([]);
@@ -13,10 +14,12 @@ const CommentBoard = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilters, setActiveFilters] = useState({});
+  const [bookmarkedComments, setBookmarkedComments] = useState(new Set());
 
   useEffect(() => {
     fetchComments();
     fetchTrendingUrls();
+    fetchBookmarkedComments();
   }, []);
 
   useEffect(() => {
@@ -54,6 +57,34 @@ const CommentBoard = () => {
       })));
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleToggleBookmark = async (commentId) => {
+    try {
+      if (bookmarkedComments.has(commentId)) {
+        await unbookmarkComment(commentId);
+        setBookmarkedComments(prev => {
+          const next = new Set(prev);
+          next.delete(commentId);
+          return next;
+        });
+      } else {
+        await bookmarkComment(commentId);
+        setBookmarkedComments(prev => new Set(prev).add(commentId));
+      }
+    } catch (error) {
+      console.error('Failed to toggle bookmark:', error);
+    }
+  };
+
+  const fetchBookmarkedComments = async () => {
+    try {
+      const bookmarked = await getBookmarkedComments();
+      // Create a Set of bookmarked comment IDs
+      setBookmarkedComments(new Set(bookmarked.map(comment => comment._id)));
+    } catch (error) {
+      console.error('Failed to fetch bookmarked comments:', error);
     }
   };
 
@@ -156,6 +187,16 @@ const CommentBoard = () => {
                       </p>
                       <p className="text-gray-900 dark:text-white">{comment.content}</p>
                     </div>
+                    <button
+                      onClick={() => handleToggleBookmark(comment._id)}
+                      className={`ml-2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                        bookmarkedComments.has(comment._id) 
+                          ? 'text-indigo-600 dark:text-indigo-400' 
+                          : 'text-gray-400 dark:text-gray-500'
+                      }`}
+                    >
+                      <Bookmark className="h-5 w-5" />
+                    </button>
                   </div>
                   <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                     {formatDistance(new Date(comment.createdAt), new Date(), { addSuffix: true })}

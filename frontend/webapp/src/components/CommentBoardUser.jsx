@@ -4,6 +4,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
 import { MessageSquare, ThumbsUp, Bookmark, Search } from 'lucide-react';
 import Loading from './Loading';
 import AdvancedFilterPanel from './AdvancedFilterPanel';
+import { getBookmarkedComments, unbookmarkComment } from '../services/bookmarks';
 
 const UserCommentBoard = ({ account }) => {
   const [comments, setComments] = useState([]);
@@ -13,6 +14,7 @@ const UserCommentBoard = ({ account }) => {
   const [activeTab, setActiveTab] = useState('created');
   const [activeFilters, setActiveFilters] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
+  const [bookmarkedComments, setBookmarkedComments] = useState([]);
 
   useEffect(() => {
     if (account) {
@@ -30,6 +32,34 @@ const UserCommentBoard = ({ account }) => {
     }
     setFilteredComments(filtered);
   }, [searchTerm, comments]);
+
+  useEffect(() => {
+    if (activeTab === 'bookmarked') {
+      fetchBookmarkedComments();
+    }
+  }, [activeTab]);
+  
+  const fetchBookmarkedComments = async () => {
+    try {
+      setIsLoading(true);
+      const data = await getBookmarkedComments();
+      setBookmarkedComments(data);
+    } catch (error) {
+      console.error('Failed to fetch bookmarked comments:', error);
+      setError(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const handleRemoveBookmark = async (commentId) => {
+    try {
+      await unbookmarkComment(commentId);
+      setBookmarkedComments(prev => prev.filter(comment => comment._id !== commentId));
+    } catch (error) {
+      console.error('Failed to remove bookmark:', error);
+    }
+  };
 
   const fetchUserComments = async (type) => {
     try {
@@ -197,7 +227,39 @@ const UserCommentBoard = ({ account }) => {
             </TabsContent>
 
             <TabsContent value="bookmarked" className="divide-y divide-gray-200 dark:divide-gray-700">
-              {/* Similar structure as "created" tab */}
+              {bookmarkedComments.length === 0 ? (
+                <div className="p-4 text-gray-500 dark:text-gray-400">
+                  No bookmarked comments found
+                </div>
+              ) : (
+                bookmarkedComments.map((comment) => (
+                  <div key={comment._id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                          <a href={comment.url} className="hover:underline">
+                            {comment.url}
+                          </a>
+                        </p>
+                        <p className="text-gray-900 dark:text-white">{comment.content}</p>
+                        <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                          {new Date(comment.createdAt).toLocaleDateString()}
+                          <span className="ml-2">• {comment.likes.length} likes</span>
+                          {comment.replies?.length > 0 && (
+                            <span className="ml-2">• {comment.replies.length} replies</span>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleRemoveBookmark(comment._id)}
+                        className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
             </TabsContent>
           </>
         )}
