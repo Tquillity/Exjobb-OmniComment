@@ -89,7 +89,7 @@ const userSchema = new mongoose.Schema({
     notificationMode: {
       type: String,
       enum: ['silent', 'notify', 'popup', 'bottomBar'],
-      default: 'silent'
+      default: 'notify'
     },
     commentPopup: {
       type: String,

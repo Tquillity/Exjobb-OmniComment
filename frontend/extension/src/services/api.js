@@ -74,10 +74,21 @@ export const postComment = async (data) => {
 // User settings API calls
 export const updateUserSettings = async (walletAddress, settings) => {
   try {
-    return await authenticatedRequest(`/users/${walletAddress}/settings`, {
+    const token = await getAuthToken();
+    const response = await fetch(`${API_BASE_URL}/users/${walletAddress}/settings`, {
       method: 'PUT',
-      body: JSON.stringify(settings),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(settings)
     });
+
+    if (!response.ok) {
+      throw new Error('Failed to update settings');
+    }
+
+    return await response.json();
   } catch (error) {
     console.error('Error updating settings:', error);
     throw error;

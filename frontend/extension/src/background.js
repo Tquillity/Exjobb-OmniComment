@@ -1,5 +1,4 @@
 // Frontend/extension/src/background.js
-
 // Constants
 const API_BASE_URL = 'http://localhost:3000/api';
 const TOKEN_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
@@ -37,12 +36,9 @@ const initializeAuth = async () => {
 let tokenRefreshInterval = null;
 
 const startTokenRefresh = () => {
-  // Clear existing interval if any
   if (tokenRefreshInterval) {
     clearInterval(tokenRefreshInterval);
   }
-  
-  // Start new refresh interval
   tokenRefreshInterval = setInterval(refreshToken, TOKEN_REFRESH_INTERVAL);
 };
 
@@ -61,14 +57,10 @@ const refreshToken = async () => {
     }
 
     const data = await response.json();
-    
-    // Update storage and state with new token
     await chrome.storage.local.set({ token: data.token });
     authState.token = data.token;
-    
   } catch (error) {
     console.error('Token refresh failed:', error);
-    // Handle failed refresh by logging out
     handleLogout();
   }
 };
@@ -76,7 +68,6 @@ const refreshToken = async () => {
 // Authentication state broadcast
 const broadcastAuthState = async () => {
   const tabs = await chrome.tabs.query({});
-  
   tabs.forEach(tab => {
     chrome.tabs.sendMessage(tab.id, {
       type: 'AUTH_STATE_CHANGED',
@@ -85,7 +76,6 @@ const broadcastAuthState = async () => {
         user: authState.user
       }
     }).catch(error => {
-      // Ignore errors for tabs that can't receive messages
       console.debug('Could not send auth state to tab:', tab.id, error);
     });
   });
@@ -94,23 +84,15 @@ const broadcastAuthState = async () => {
 // Handle login
 const handleLogin = async (token, user) => {
   try {
-    // Update storage
     await chrome.storage.local.set({ token, user });
-    
-    // Update state
     authState = {
       isAuthenticated: true,
       user,
       token
     };
-    
-    // Start token refresh
     startTokenRefresh();
-    
-    // Broadcast new state
     broadcastAuthState();
     
-    // Show notification
     chrome.notifications.create({
       type: 'basic',
       iconUrl: '/icons/icon48.png',
@@ -125,29 +107,80 @@ const handleLogin = async (token, user) => {
 // Handle logout
 const handleLogout = async () => {
   try {
-    // Clear storage
     await chrome.storage.local.remove(['token', 'user']);
-    
-    // Clear state
     authState = {
       isAuthenticated: false,
       user: null,
       token: null
     };
-    
-    // Clear token refresh
     if (tokenRefreshInterval) {
       clearInterval(tokenRefreshInterval);
       tokenRefreshInterval = null;
     }
-    
-    // Broadcast new state
     broadcastAuthState();
-    
   } catch (error) {
     console.error('Logout handler error:', error);
   }
 };
+
+// Check for comments and update badge
+const checkForComments = async (url) => {
+  try {
+    if (!url || !url.startsWith('http')) {
+      return;
+    }
+    
+    console.log('Checking comments for URL:', url);
+    const response = await fetch(`${API_BASE_URL}/comments?url=${encodeURIComponent(url)}`);
+    const comments = await response.json();
+    console.log('Comments response:', comments);
+    
+    // Always update badge if there are any comments
+    if (comments && comments.length > 0) {
+      console.log('Setting badge notification');
+      chrome.action.setBadgeText({ text: "!" });
+      chrome.action.setBadgeBackgroundColor({ color: '#EF4444' }); // Red color
+      chrome.action.setBadgeTextColor({ color: '#FFFFFF' }); // White text
+    } else {
+      console.log('Clearing badge');
+      chrome.action.setBadgeText({ text: '' });
+    }
+  } catch (error) {
+    console.error('Error checking comments:', error);
+  }
+};
+
+// Listen for tab updates and activation
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'complete' && tab.url && tab.url.startsWith('http')) {
+    console.log('Tab updated:', tab.url);
+    chrome.storage.local.get(['user'], async (result) => {
+      console.log('Retrieved user settings:', result.user?.settings);
+      const notificationMode = result.user?.settings?.notificationMode || 'silent';
+      console.log('Notification mode:', notificationMode);
+      if (notificationMode === 'notify') {
+        await checkForComments(tab.url);
+      } else {
+        chrome.action.setBadgeText({ text: '' });
+      }
+    });
+  }
+});
+
+// Also check when switching tabs
+chrome.tabs.onActivated.addListener(async (activeInfo) => {
+  const tab = await chrome.tabs.get(activeInfo.tabId);
+  if (tab.url && tab.url.startsWith('http')) {
+    chrome.storage.local.get(['user'], async (result) => {
+      const notificationMode = result.user?.settings?.notificationMode || 'silent';
+      if (notificationMode === 'notify') {
+        await checkForComments(tab.url);
+      } else {
+        chrome.action.setBadgeText({ text: '' });
+      }
+    });
+  }
+});
 
 // Message handlers
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -163,16 +196,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       handleLogin(request.data.token, request.data.user)
         .then(() => sendResponse({ success: true }))
         .catch(error => sendResponse({ error: error.message }));
-      return true; // Will respond asynchronously
+      return true;
 
     case 'LOGOUT':
       handleLogout()
         .then(() => sendResponse({ success: true }))
         .catch(error => sendResponse({ error: error.message }));
-      return true; // Will respond asynchronously
+      return true;
 
     case 'CHECK_AUTH':
-      // Check if token is still valid
       fetch(`${API_BASE_URL}/auth/verify`, {
         headers: {
           'Authorization': `Bearer ${authState.token}`
@@ -189,24 +221,45 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         .catch(() => {
           handleLogout().then(() => sendResponse({ isValid: false }));
         });
-      return true; // Will respond asynchronously
+      return true;
+
+    case 'CHECK_COMMENTS':
+      checkForComments(request.data.url)
+        .then(() => sendResponse({ success: true }))
+        .catch(error => sendResponse({ error: error.message }));
+      return true;
   }
 });
 
 // Handle installed/updated event
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === 'install') {
-    // Show welcome notification
     chrome.notifications.create({
       type: 'basic',
       iconUrl: '/icons/icon48.png',
       title: 'Welcome to OmniComment!',
       message: 'Thank you for installing OmniComment. Click to get started!'
     });
-  } else if (details.reason === 'update') {
-    // Handle update if needed
   }
 });
 
 // Initialize on startup
 initializeAuth();
+
+const initializeNotifications = async () => {
+  try {
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const currentTab = tabs[0];
+    if (currentTab?.url && currentTab.url.startsWith('http')) {
+      const { preferences } = await chrome.storage.local.get(['preferences']);
+      const notificationMode = preferences?.notificationMode || 'silent';
+      console.log('Current notification mode:', notificationMode);
+      
+      if (notificationMode === 'notify') {
+        await checkForComments(currentTab.url);
+      }
+    }
+  } catch (error) {
+    console.error('Error initializing notifications:', error);
+  }
+};

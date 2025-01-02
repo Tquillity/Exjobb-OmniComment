@@ -134,22 +134,18 @@ router.put('/:walletAddress/settings', async (req, res) => {
     const { walletAddress } = req.params;
     const { settings } = req.body;
 
-    // Validate settings structure
-    if (!settings || !settings.comments) {
-      return res.status(400).json({ 
-        error: 'Invalid settings format. Expected settings.comments object.' 
-      });
-    }
-
     const user = await User.findOne({ walletAddress });
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Update only the settings field
-    user.settings = settings;
-    await user.save();
+    // Merge settings properly
+    user.settings = {
+      ...user.settings,
+      ...settings.settings
+    };
 
+    await user.save();
     res.json({ settings: user.settings });
   } catch (error) {
     console.error('Settings update error:', error);

@@ -1,14 +1,25 @@
 // Frontend/extension/src/components/AppearanceSettings.jsx
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTheme } from '../contexts/ThemeContexts';
+import { useAuth } from '../contexts/AuthContext';
+import { updateUserSettings } from '../services/api';
 import { Info } from 'lucide-react';
 
 const AppearanceSettings = () => {
   const { theme, setThemePreference } = useTheme();
-  const [fontSize, setFontSize] = React.useState('medium');
-  const [commentDisplay, setCommentDisplay] = React.useState('sidebar');
-  const [density, setDensity] = React.useState('comfortable');
-  const [notificationMode, setNotificationMode] = React.useState('notify');
+  const [fontSize, setFontSize] = useState('medium');
+  const [commentDisplay, setCommentDisplay] = useState('sidebar');
+  const [density, setDensity] = useState('comfortable');
+  const { user } = useAuth();
+  const [notificationMode, setNotificationMode] = useState(
+    user?.settings?.notificationMode || 'notify'
+  );
+
+  useEffect(() => {
+    if (user?.settings?.notificationMode) {
+      setNotificationMode(user.settings.notificationMode);
+    }
+  }, [user]);
 
   // Tooltip content for notification modes
   const notificationTooltips = {
@@ -16,6 +27,44 @@ const AppearanceSettings = () => {
     notify: "The extension shows notification in the extensions pane if the URL is commented.",
     popup: "The extension opens up and shows the comments if the URL is commented.",
     bottomBar: "The extension opens up and show the comments in a bottom of the screen Bar."
+  };
+
+  const handleNotificationChange = async (mode) => {
+    setNotificationMode(mode);
+    
+    try {
+      // Update user settings through the API
+      await updateUserSettings(user.walletAddress, {
+        settings: {
+          ...user.settings,
+          notificationMode: mode
+        }
+      });
+      
+      // Also update local storage
+      const data = await chrome.storage.local.get(['user']);
+      const updatedUser = {
+        ...data.user,
+        settings: {
+          ...data.user.settings,
+          notificationMode: mode
+        }
+      };
+      await chrome.storage.local.set({ user: updatedUser });
+      
+      // Check comments if notify mode is enabled
+      if (mode === 'notify') {
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tabs[0]?.url) {
+          chrome.runtime.sendMessage({ 
+            type: 'CHECK_COMMENTS', 
+            data: { url: tabs[0].url } 
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error saving notification preference:', error);
+    }
   };
 
   return (
@@ -37,7 +86,7 @@ const AppearanceSettings = () => {
                 name="notificationMode"
                 value={option.value}
                 checked={notificationMode === option.value}
-                onChange={(e) => setNotificationMode(e.target.value)}
+                onChange={(e) => handleNotificationChange(e.target.value)}
                 className="text-blue-600 focus:ring-blue-500"
               />
               <label htmlFor={option.value} className="flex items-center">
